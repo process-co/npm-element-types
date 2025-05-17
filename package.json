@@ -1,0 +1,29 @@
+{
+  "name": "@process.co/element-types",
+  "version": "0.0.0-development",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/process-co/npm-element-types.git"
+  },
+  "publishConfig": {
+    "access": "restricted",
+    "registry": "https://registry.npmjs.org",
+    "scope": "@process.co"
+  },
+  "keywords": [
+    "process",
+    "element",
+    "types",
+    "validation"
+  ],
+  "author": {
+    "name": "Process.co Team",
+    "email": "developers@process.co"
+  },
+  "license": "ISC"
+}
