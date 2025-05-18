@@ -16,12 +16,12 @@ export type ModuleDefinition = {
 // Utility type for transforming prop definitions to their runtime types
 export type PropType<T> =
   T extends { props: Record<string, any>; methods: Record<string, any> }
-    ? DeriveAppInstance<T>
-    : T extends { type: "string" } ? string
-    : T extends { type: "object" } ? Record<string, unknown>
-    : T extends { type: "number" } ? number
-    : T extends { type: "boolean" } ? boolean
-    : unknown;
+  ? DeriveAppInstance<T>
+  : T extends { type: "string" } ? string
+  : T extends { type: "object" } ? Record<string, unknown>
+  : T extends { type: "number" } ? number
+  : T extends { type: "boolean" } ? boolean
+  : unknown;
 
 // Base module shape type
 export type ModuleShape = {
@@ -36,29 +36,29 @@ export type Spread<T> = { [K in keyof T]: T[K] };
 // Helper type to derive instance type from app definition, fully flattened
 export type DeriveAppInstance<T> =
   T extends { methods: Record<string, any>; props: Record<string, any> }
-    ? Spread<
-        Omit<T, "props" | "methods"> &
-        { [K in keyof T["props"]]: PropType<T["props"][K]> } &
-        { [K in keyof T["methods"]]: T["methods"][K] }
-      >
-    : never;
+  ? Spread<
+    Omit<T, "props" | "methods"> &
+    { [K in keyof T["props"]]: PropType<T["props"][K]> } &
+    { [K in keyof T["methods"]]: T["methods"][K] }
+  >
+  : never;
 
 // Helper type to derive instance type from action/source definition, fully flattened
 export type DeriveActionInstance<T> =
   T extends { methods: Record<string, any>; props: Record<string, any> }
-    ? Spread<
-        Omit<T, "props" | "methods"> &
-        { [K in keyof T["props"]]: T["props"][K] extends { type: string }
-          ? PropType<T["props"][K]>
-          : T["props"][K] extends { type: "app"; methods: Record<string, any> }
-            ? { [M in keyof T["props"][K]["methods"]]: T["props"][K]["methods"][M] }
-            : T["props"][K] extends { methods: Record<string, any>; props: Record<string, any> }
-              ? DeriveActionInstance<T["props"][K]>
-              : T["props"][K]
-        } &
-        { [K in keyof T["methods"]]: T["methods"][K] }
-      >
-    : never;
+  ? Spread<
+    Omit<T, "props" | "methods"> &
+    { [K in keyof T["props"]]: T["props"][K] extends { type: string }
+      ? PropType<T["props"][K]>
+      : T["props"][K] extends { type: "app"; methods: Record<string, any> }
+      ? { [M in keyof T["props"][K]["methods"]]: T["props"][K]["methods"][M] }
+      : T["props"][K] extends { methods: Record<string, any>; props: Record<string, any> }
+      ? DeriveActionInstance<T["props"][K]>
+      : T["props"][K]
+    } &
+    { [K in keyof T["methods"]]: T["methods"][K] }
+  >
+  : never;
 
 // Helper type to create a module with proper this context
 export type ModuleWithThis<T> = T & ThisType<DeriveActionInstance<T>>;
@@ -90,6 +90,11 @@ export function defineApp<T extends object>(app: T & ThisType<DeriveAppInstance<
 // Helper to provide ThisType context for action definitions
 export function defineAction<T extends object>(action: T & ThisType<DeriveActionInstance<T>>): T {
   return action;
+}
+
+// Helper to define props and preserve literal types
+export function defineProps<T extends Record<string, any>>(props: T): T {
+  return props;
 }
 
 // Utility type to automatically infer the correct this context for methods
