@@ -1,4 +1,6 @@
-# @process.co/element-types ![NPM Version](https://img.shields.io/npm/v/%40process.co%2Felement-types) ![GitHub Release](https://img.shields.io/github/v/release/process-co/npm-element-types) ![GitHub package.json version (branch)](https://img.shields.io/github/package-json/v/process-co/npm-element-types/main?color=%23AA00AA)
+# @process.co/element-types ![NPM Version](https://img.shields.io/npm/v/%40process.co%2Felement-types?link=https:%2F%2Fwww.npmjs.com%2Fpackage%2F@process.co%2Felement-types) ![GitHub Release](https://img.shields.io/github/v/release/process-co/npm-element-types?link=https:%2F%2Fgithub.com%2Fprocess-co%2Fnpm-element-types%2Freleases%2Flatest) ![GitHub package.json version (branch)](https://img.shields.io/github/package-json/v/process-co/npm-element-types/main?color=%23AA00AA&link=https%3A%2F%2Fgithub.com%2Fprocess-co%2Fnpm-element-types)
+
+
 
 
 
