@@ -1,4 +1,8 @@
-# @process.co/element-types
+# @process.co/element-types ![NPM Version](https://img.shields.io/npm/v/%40process.co%2Felement-types) ![GitHub Release](https://img.shields.io/github/v/release/process-co/npm-element-types) ![GitHub package.json version (branch)](https://img.shields.io/github/package-json/v/process-co/npm-element-types/main?color=%23AA00AA)
+
+
+
+
 
 TypeScript types and utilities for defining Process.co Elements.
 
