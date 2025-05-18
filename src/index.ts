@@ -92,11 +92,6 @@ export function defineAction<T extends object>(action: T & ThisType<DeriveAction
   return action;
 }
 
-// Helper to define props and preserve literal types
-export function defineProps<T extends Record<string, any>>(props: T): T {
-  return props;
-}
-
 // Utility type to automatically infer the correct this context for methods
 export type WithThis<T> = T extends { methods: Record<string, any>; props: Record<string, any> }
   ? Omit<T, 'methods'> & {

@@ -94,7 +94,6 @@ export type PropDefinition = {
 };
 export declare function defineApp<T extends object>(app: T & ThisType<DeriveAppInstance<T>>): T;
 export declare function defineAction<T extends object>(action: T & ThisType<DeriveActionInstance<T>>): T;
-export declare function defineProps<T extends Record<string, any>>(props: T): T;
 export type WithThis<T> = T extends {
     methods: Record<string, any>;
     props: Record<string, any>;
