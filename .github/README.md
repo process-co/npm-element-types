@@ -55,3 +55,8 @@ export default processInternalApp;
 ## License
 
 MIT 
+
+> [!IMPORTANT] 
+> CHANGES HERE WILL GET OVERWRITTEN<br/>
+> 
+> The JS code in this repo is published from an internal mono repo. The publish process bundles the specific parts of our select internal libararies that may be needed at build time. This repo only represents the public parts of the code that are published to NPM.
