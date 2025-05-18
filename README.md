@@ -1,39 +1,56 @@
-# Process.co Element Types
+# @process.co/element-types
 
-This repository contains the bundled version of the Process.co Element Types.
+TypeScript types and utilities for defining Process.co Elements.
 
 ## Installation
 
 ```bash
-# Install
 npm install @process.co/element-types
+```
+
+### Pinned Version
+```bash
+npm install git+https://github.com/process-co/npm-element-types.git#v0.0.1
+```
+
+### Latest Development Version
+```bash
+npm install git+https://github.com/process-co/npm-element-types.git#main
 ```
 
 ## Usage
 
-### Command Line Interface
+```typescript
+import { defineApp } from '@process.co/element-types';
 
-```bash
-process-element ./path/to/element
-```
-
-### Programmatic Usage (CommonJS)
-
-```javascript
-const { loadElement } = require('@process.co/element-types');
-
-// Use the library
-loadElement('./path/to/element').then(result => {
-  console.log(result);
+// Define the app
+const exampleApp = defineApp({
+  type: "app",
+  app: "example_app",
+  props: {
+    someProp: {
+      label: "Some Prop",
+      description: "This is some prop",
+      type: "string",
+    },
+  } as const,
+  methods: {
+    async doSomthing(this: DeriveAppInstance<ExampleApp>, $: any, switchExpression: string, cases: Record<string, unknown>) {
+      // Implementation
+      return {};
+    },
+    // ... other methods
+  },
 });
+
+// Derive types from the implementation
+export type ExampleApp = typeof exampleApp;
+export type ExampleAppInstance = DeriveAppInstance<ExampleApp>;
+
+export default processInternalApp;
+
 ```
 
-### Programmatic Usage (ESM)
+## License
 
-```javascript    
-import { loadElement } from '@process.co/element-types';
-
-// Use the library
-const result = await loadElement('./path/to/element');
-console.log(result);
-```
+MIT 
