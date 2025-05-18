@@ -25,7 +25,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
-          registry-url: 'https://registry.npmjs.org'
+          registry-url: ${{ github.event.inputs.registry || 'https://registry.npmjs.org' }}
 
       - name: Install pnpm
         uses: pnpm/action-setup@v2
@@ -35,8 +35,24 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Build
-        run: pnpm build
+      - name: Get version from tag
+        id: get_version
+        run: |
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+            VERSION=${VERSION#v}
+          else
+            VERSION=$(node -p "require('./package.json').version")
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Using version: $VERSION"
+
+      - name: Update version in package.json
+        run: |
+          sed -i 's/"version": "[^"]*"/"version": "${{ steps.get_version.outputs.VERSION }}"/' package.json
+          REGISTRY="${{ github.event.inputs.registry || 'https://registry.npmjs.org' }}"
+          jq --arg reg "$REGISTRY" '.publishConfig.registry = $reg | .registry = $reg' package.json > package.json.tmp && mv package.json.tmp package.json
+          jq '.publishConfig.access = "public"' package.json > package.json.tmp && mv package.json.tmp package.json
 
       - name: Verify package structure
         run: |
@@ -49,7 +65,7 @@ jobs:
           cat package.json
 
       - name: Publish to npm
-        run: pnpm publish --access=public --no-git-checks 
+        run: pnpm publish --access=public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_REGISTRY: ${{ github.event.inputs.registry || 'https://registry.npmjs.org' }} 

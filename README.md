@@ -1,14 +1,11 @@
 # Process.co Element Types
 
-This repository contains the bundled version of the Process.co Element Types CLI tool.
+This repository contains the bundled version of the Process.co Element Types.
 
 ## Installation
 
 ```bash
-# First authenticate with npm (if you have access to private packages)
-npm login
-
-# Then install
+# Install
 npm install @process.co/element-types
 ```
 
