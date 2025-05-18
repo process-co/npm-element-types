@@ -1,89 +1,48 @@
-name: Publish Compatibility CLI
+name: Publish Element Types
 
 on:
   release:
     types: [published]
   workflow_dispatch:
-    inputs:
-      registry:
-        description: 'NPM Registry URL'
-        required: false
-        type: string
-        default: 'https://registry.npmjs.org'
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
-          registry-url: ${{ github.event.inputs.registry || 'https://registry.npmjs.org' }}
-          scope: '@process.co'
-      
-      - name: Get version from tag
-        id: get_version
-        run: |
-          # Get version from tag or use default for workflow_dispatch
-          if [[ "${{ github.event_name }}" == "release" ]]; then
-            # Remove the 'v' prefix if present (e.g., v1.0.0 -> 1.0.0)
-            VERSION=${GITHUB_REF#refs/tags/}
-            VERSION=${VERSION#v}
-          else
-            # Use package.json version or a default for manual dispatch
-            VERSION=$(node -p "require('./package.json').version")
-          fi
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "Using version: $VERSION"
-      
-      - name: Update version in package.json
-        run: |
-          # Update the version in package.json
-          sed -i 's/"version": "[^"]*"/"version": "${{ steps.get_version.outputs.VERSION }}"/' package.json
-          
-          # Make sure registry is set correctly
-          REGISTRY="${{ github.event.inputs.registry || 'https://registry.npmjs.org' }}"
-          jq --arg reg "$REGISTRY" '.publishConfig.registry = $reg | .registry = $reg' package.json > package.json.tmp && mv package.json.tmp package.json
-          
-          # Ensure access is set to restricted
-          jq '.publishConfig.access = "restricted"' package.json > package.json.tmp && mv package.json.tmp package.json
-      
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
       - name: Verify package structure
         run: |
           echo "Checking package structure..."
-          # Verify main directories exist
-          [ -d "cjs" ] || echo "Warning: CJS directory missing!"
-          [ -d "esm" ] || echo "Warning: ESM directory missing!"
-          
-          # Verify main files exist
-          [ -f "index.js" ] || echo "Warning: Root index.js missing!"
-          [ -f "cjs/index.js" ] || echo "Warning: CJS bundle missing!"
-          [ -f "esm/index.js" ] || echo "Warning: ESM bundle missing!"
-          [ -f "esm/package.json" ] || echo "Warning: ESM package.json missing!"
-          
-          # Make sure executables have correct permissions
-          chmod +x index.js cjs/index.js esm/index.js
-          
-          # Show final package.json
+          [ -d "dist" ] || (echo "Error: dist directory missing!" && exit 1)
+          [ -f "dist/index.js" ] || (echo "Error: dist/index.js missing!" && exit 1)
+          [ -f "dist/index.d.ts" ] || (echo "Error: dist/index.d.ts missing!" && exit 1)
+          echo "dist/index.js and dist/index.d.ts found."
           echo "Final package.json:"
           cat package.json
-      
-      - name: Create .npmrc for authentication
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > .npmrc
-          echo "@process.co:registry=${{ github.event.inputs.registry || 'https://registry.npmjs.org' }}" >> .npmrc
-        env:  
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      
+
       - name: Publish to npm
-        run: npm publish --access=restricted
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_REGISTRY: ${{ github.event.inputs.registry || 'https://registry.npmjs.org' }} 
+        run: pnpm publish --access=public --no-git-checks 
