@@ -1,7 +1,13 @@
 # @process.co/element-types ![NPM Version](https://img.shields.io/npm/v/%40process.co%2Felement-types?link=https:%2F%2Fwww.npmjs.com%2Fpackage%2F@process.co%2Felement-types) ![GitHub Release](https://img.shields.io/github/v/release/process-co/npm-element-types?link=https:%2F%2Fgithub.com%2Fprocess-co%2Fnpm-element-types%2Freleases%2Flatest) ![GitHub package.json version (branch)](https://img.shields.io/github/package-json/v/process-co/npm-element-types/main?color=%23AA00AA&link=https%3A%2F%2Fgithub.com%2Fprocess-co%2Fnpm-element-types)
 
-
 TypeScript types and utilities for defining Process.co Elements.
+
+
+> [!IMPORTANT] 
+> CHANGES HERE WILL GET OVERWRITTEN<br/>
+> 
+> The JS code in this repo is published from an internal mono repo. The publish process bundles the specific parts of our select internal libararies that may be needed at build time. This repo only represents the public parts of the code that are published to NPM.
+
 
 ## Installation
 
@@ -56,7 +62,3 @@ export default processInternalApp;
 
 MIT 
 
-> [!IMPORTANT] 
-> CHANGES HERE WILL GET OVERWRITTEN<br/>
-> 
-> The JS code in this repo is published from an internal mono repo. The publish process bundles the specific parts of our select internal libararies that may be needed at build time. This repo only represents the public parts of the code that are published to NPM.
