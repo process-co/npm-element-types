@@ -27,13 +27,13 @@ jobs:
           node-version: 18
           registry-url: ${{ github.event.inputs.registry || 'https://registry.npmjs.org' }}
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 10
+      # - name: Install pnpm
+      #   uses: pnpm/action-setup@v2
+      #   with:
+      #     version: 10
 
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+      # - name: Install dependencies
+      #   run: pnpm install --no-frozen-lockfile
 
       - name: Get version from tag
         id: get_version
@@ -65,7 +65,7 @@ jobs:
           cat package.json
 
       - name: Publish to npm
-        run: pnpm publish --access=public --no-git-checks
+        run: npm publish --access=public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_REGISTRY: ${{ github.event.inputs.registry || 'https://registry.npmjs.org' }} 
