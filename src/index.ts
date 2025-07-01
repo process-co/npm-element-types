@@ -98,6 +98,7 @@ export type ElementUIProps<T> = {
   onChange: (value: T, opts?: OnChangeOpts) => void;
   onBlur: () => void;
   value: T;
+  readonly?: boolean;
 }
 
 // Utility type to automatically infer the correct this context for methods

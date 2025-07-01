@@ -101,6 +101,7 @@ export type ElementUIProps<T> = {
     onChange: (value: T, opts?: OnChangeOpts) => void;
     onBlur: () => void;
     value: T;
+    readonly?: boolean;
 };
 export type WithThis<T> = T extends {
     methods: Record<string, any>;
