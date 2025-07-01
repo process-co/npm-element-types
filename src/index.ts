@@ -92,6 +92,14 @@ export function defineAction<T extends object>(action: T & ThisType<DeriveAction
   return action;
 }
 
+export type OnChangeOpts = { layoutShift?: boolean };
+
+export type ElementUIProps<T> = {
+  onChange: (value: T, opts?: OnChangeOpts) => void;
+  onBlur: () => void;
+  value: T;
+}
+
 // Utility type to automatically infer the correct this context for methods
 export type WithThis<T> = T extends { methods: Record<string, any>; props: Record<string, any> }
   ? Omit<T, 'methods'> & {

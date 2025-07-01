@@ -94,6 +94,14 @@ export type PropDefinition = {
 };
 export declare function defineApp<T extends object>(app: T & ThisType<DeriveAppInstance<T>>): T;
 export declare function defineAction<T extends object>(action: T & ThisType<DeriveActionInstance<T>>): T;
+export type OnChangeOpts = {
+    layoutShift?: boolean;
+};
+export type ElementUIProps<T> = {
+    onChange: (value: T, opts?: OnChangeOpts) => void;
+    onBlur: () => void;
+    value: T;
+};
 export type WithThis<T> = T extends {
     methods: Record<string, any>;
     props: Record<string, any>;
