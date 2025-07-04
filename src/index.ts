@@ -5,6 +5,13 @@ export type ElementNumber = { type: "number"; label?: string; description?: stri
 export type ElementBoolean = { type: "boolean"; label?: string; description?: string };
 export type ElementApp<T> = { type: "app"; app: T };
 
+export type ElementAction<T> = { type: "action"; icon?: ElementIcon; label?: string; description?: string } & T;
+export type ElementSource<T> = { type: "source"; icon?: ElementIcon; label?: string; description?: string } & T;
+export type ElementTrigger<T> = { type: "trigger"; icon?: ElementIcon; label?: string; description?: string } & T;
+export type ElementSignal<T> = { type: "signal"; icon?: ElementIcon; label?: string; description?: string } & T;
+
+export type ElementIcon = { type: "FontAwesome" | "MaterialIcons" | "ProcessIcons" | "RemoteImage"; icon: string | ['far' | 'fas' | 'fab' | 'fal' | 'fad', string] } | string;
+
 // Base types for module definitions
 export type ModuleDefinition = {
   type: string;

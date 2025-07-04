@@ -22,6 +22,34 @@ export type ElementApp<T> = {
     type: "app";
     app: T;
 };
+export type ElementAction<T> = {
+    type: "action";
+    icon?: ElementIcon;
+    label?: string;
+    description?: string;
+} & T;
+export type ElementSource<T> = {
+    type: "source";
+    icon?: ElementIcon;
+    label?: string;
+    description?: string;
+} & T;
+export type ElementTrigger<T> = {
+    type: "trigger";
+    icon?: ElementIcon;
+    label?: string;
+    description?: string;
+} & T;
+export type ElementSignal<T> = {
+    type: "signal";
+    icon?: ElementIcon;
+    label?: string;
+    description?: string;
+} & T;
+export type ElementIcon = {
+    type: "FontAwesome" | "MaterialIcons" | "ProcessIcons" | "RemoteImage";
+    icon: string | ['far' | 'fas' | 'fab' | 'fal' | 'fad', string];
+} | string;
 export type ModuleDefinition = {
     type: string;
     app: string;
