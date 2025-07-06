@@ -60,6 +60,17 @@ export type PropType<T> = T extends {
     props: Record<string, any>;
     methods: Record<string, any>;
 } ? DeriveAppInstance<T> : T extends {
+    propDefinition: readonly [infer App, infer PropName];
+} ? App extends {
+    props: Record<string, any>;
+} ? PropName extends keyof App["props"] ? PropType<App["props"][PropName]> : unknown : unknown : T extends {
+    type: "http_request";
+} ? {
+    execute: () => Promise<{
+        headers?: Record<string, string>;
+        [key: string]: any;
+    }>;
+} : T extends {
     type: "string";
 } ? string : T extends {
     type: "object";
@@ -76,29 +87,45 @@ export type ModuleShape = {
 export type Spread<T> = {
     [K in keyof T]: T[K];
 };
-export type DeriveAppInstance<T> = T extends {
-    methods: Record<string, any>;
+export type DeriveAppInstance<T> = Spread<Omit<T, "props" | "propDefinitions" | "methods"> & (T extends {
     props: Record<string, any>;
-} ? Spread<Omit<T, "props" | "methods"> & {
+} ? {
     [K in keyof T["props"]]: PropType<T["props"][K]>;
-} & {
+} : {}) & (T extends {
+    propDefinitions: Record<string, any>;
+} ? {
+    [K in keyof T["propDefinitions"]]: PropType<T["propDefinitions"][K]>;
+} : {}) & (T extends {
+    methods: Record<string, any>;
+} ? {
     [K in keyof T["methods"]]: T["methods"][K];
-}> : never;
+} : {})>;
+export type PropDefinitionType<App, PropName extends string> = App extends {
+    propDefinitions: Record<string, any>;
+} ? PropName extends keyof App['propDefinitions'] ? PropType<App['propDefinitions'][PropName]> : unknown : unknown;
+type InferProp<P> = P extends {
+    propDefinition: readonly [infer App, infer PropName];
+} ? App extends {
+    propDefinitions: Record<string, any>;
+} ? PropName extends keyof App['propDefinitions'] ? PropType<App['propDefinitions'][PropName]> : unknown : App extends {
+    props: Record<string, any>;
+} ? PropName extends keyof App['props'] ? PropType<App['props'][PropName]> : unknown : unknown : P extends {
+    type: string;
+} ? PropType<P> : P extends {
+    props: Record<string, any>;
+} ? {
+    [K in keyof P['props']]: InferProp<P['props'][K]>;
+} : P extends {
+    type: "app";
+    methods: Record<string, any>;
+} ? {
+    [M in keyof P["methods"]]: P["methods"][M];
+} : P;
 export type DeriveActionInstance<T> = T extends {
     methods: Record<string, any>;
     props: Record<string, any>;
 } ? Spread<Omit<T, "props" | "methods"> & {
-    [K in keyof T["props"]]: T["props"][K] extends {
-        type: string;
-    } ? PropType<T["props"][K]> : T["props"][K] extends {
-        type: "app";
-        methods: Record<string, any>;
-    } ? {
-        [M in keyof T["props"][K]["methods"]]: T["props"][K]["methods"][M];
-    } : T["props"][K] extends {
-        methods: Record<string, any>;
-        props: Record<string, any>;
-    } ? DeriveActionInstance<T["props"][K]> : T["props"][K];
+    [K in keyof T["props"]]: InferProp<T["props"][K]>;
 } & {
     [K in keyof T["methods"]]: T["methods"][K];
 }> : never;
@@ -139,4 +166,5 @@ export type WithThis<T> = T extends {
         [K in keyof T['methods']]: T['methods'][K] extends (...args: infer A) => infer R ? (this: DeriveActionInstance<T>, ...args: A) => R : T['methods'][K];
     };
 } : T;
+export {};
 //# sourceMappingURL=index.d.ts.map
