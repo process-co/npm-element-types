@@ -13,6 +13,11 @@ export type ElementNumber = {
     label?: string;
     description?: string;
 };
+export type ElementInteger = {
+    type: "integer";
+    label?: string;
+    description?: string;
+};
 export type ElementBoolean = {
     type: "boolean";
     label?: string;
@@ -82,7 +87,9 @@ export type PropType<T> = T extends {
     type: "number";
 } ? number : T extends {
     type: "boolean";
-} ? boolean : unknown;
+} ? boolean : T extends {
+    type: "integer";
+} ? number : unknown;
 export type ModuleShape = {
     type: string;
     props: Record<string, any>;

@@ -2,6 +2,7 @@
 export type ElementString = { type: "string"; label?: string; description?: string };
 export type ElementObject = { type: "object"; label?: string; description?: string };
 export type ElementNumber = { type: "number"; label?: string; description?: string };
+export type ElementInteger = { type: "integer"; label?: string; description?: string };
 export type ElementBoolean = { type: "boolean"; label?: string; description?: string };
 export type ElementApp<T> = { type: "app"; app: T };
 
@@ -47,6 +48,7 @@ export type PropType<T> =
   : T extends { type: "object" } ? Record<string, unknown>
   : T extends { type: "number" } ? number
   : T extends { type: "boolean" } ? boolean
+  : T extends { type: "integer" } ? number
   // 4. Fallback
   : unknown;
 // export type PropType<T> =
