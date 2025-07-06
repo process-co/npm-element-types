@@ -61,6 +61,20 @@ export type ModuleDefinition = {
     propDefinitions: Record<string, unknown>;
     methods: Record<string, (params: any) => Promise<unknown>>;
 };
+export type SignalEventShape = {
+    method: string;
+    path: string;
+    query: {
+        [key: string]: string;
+    };
+    headers: {
+        [key: string]: string;
+    };
+    bodyRaw: string;
+    body: {
+        [key: string]: JSONValue;
+    };
+};
 /**
  * Http Response.
  */
@@ -78,6 +92,7 @@ export interface HTTPResponse {
      * the response at the end of the workflow execution
      */
     immediate?: boolean;
+    headers?: SendConfigHTTPKv;
 }
 export interface FlowFunctions {
     exit: (reason: string) => void;
@@ -190,6 +205,9 @@ export interface EmitMetadata {
 export interface IdEmitMetadata extends EmitMetadata {
     id: string | number;
 }
+type EmitFunction = {
+    $emit: (event: JSONValue, metadata?: EmitMetadata) => Promise<void>;
+};
 export type PropType<T> = T extends {
     props: Record<string, any>;
     methods: Record<string, any>;
@@ -240,7 +258,6 @@ export type ModuleShape = {
 export type Spread<T> = {
     [K in keyof T]: T[K];
 };
-export type DeriveSignalInstance<T> = DeriveAppInstance<T>;
 export type DeriveAppInstance<T> = Spread<Omit<T, "props" | "propDefinitions" | "methods"> & (T extends {
     props: Record<string, any>;
 } ? {
@@ -249,11 +266,28 @@ export type DeriveAppInstance<T> = Spread<Omit<T, "props" | "propDefinitions" | 
     propDefinitions: Record<string, any>;
 } ? {
     [K in keyof T["propDefinitions"]]: PropType<T["propDefinitions"][K]>;
-} : {}) & (T extends {
+} : {}) & EmitFunction & (T extends {
     methods: Record<string, any>;
 } ? {
     [K in keyof T["methods"]]: T["methods"][K];
-} : {})>;
+} : {}) & {
+    [K in keyof T as K extends "props" | "propDefinitions" | "methods" ? never : K]: T[K];
+}>;
+export type DeriveSignalInstance<T> = Spread<Omit<T, "props" | "propDefinitions" | "methods"> & (T extends {
+    props: Record<string, any>;
+} ? {
+    [K in keyof T["props"]]: PropType<T["props"][K]>;
+} : {}) & (T extends {
+    propDefinitions: Record<string, any>;
+} ? {
+    [K in keyof T["propDefinitions"]]: PropType<T["propDefinitions"][K]>;
+} : {}) & EmitFunction & (T extends {
+    methods: Record<string, any>;
+} ? {
+    [K in keyof T["methods"]]: T["methods"][K];
+} : {}) & {
+    [K in keyof T as K extends "props" | "propDefinitions" | "methods" ? never : K]: T[K];
+}>;
 export type PropDefinitionType<App, PropName extends string> = App extends {
     propDefinitions: Record<string, any>;
 } ? PropName extends keyof App['propDefinitions'] ? PropType<App['propDefinitions'][PropName]> : unknown : unknown;
@@ -278,7 +312,16 @@ export interface Action<P extends Record<string, any> = Record<string, any>> ext
         $: any;
     }) => Promise<unknown>;
 }
+export interface Signal<P extends Record<string, any> = Record<string, any>> extends ModuleDefinition {
+    type: "signal";
+    props: P;
+    run: (this: DeriveSignalInstance<Signal<P>>, params: {
+        event: SignalEventShape;
+    }) => Promise<unknown>;
+}
 export type ActionInstance<A extends Action> = DeriveActionInstance<A>;
+export type SignalInstance<S extends Signal> = DeriveSignalInstance<S>;
+export type SignalMethod<S extends Signal> = (this: SignalInstance<S>, params: SignalEventShape) => Promise<unknown>;
 export type ActionMethod<A extends Action> = (this: ActionInstance<A>, params: {
     $: any;
 }) => Promise<unknown>;
@@ -290,7 +333,9 @@ export type PropDefinition = {
 };
 export declare function defineApp<T extends object>(app: T & ThisType<DeriveAppInstance<T>>): T;
 export declare function defineAction<T extends object>(action: T & ThisType<DeriveActionInstance<T>>): T;
-export declare function defineSignal<T extends object>(signal: T & ThisType<DeriveSignalInstance<T>>): T;
+export declare function defineSignal<T extends {
+    run: (event: SignalEventShape) => Promise<void>;
+}>(signal: T & ThisType<DeriveSignalInstance<T>>): T;
 export type OnChangeOpts = {
     layoutShift?: boolean;
 };
@@ -308,4 +353,5 @@ export type WithThis<T> = T extends {
         [K in keyof T['methods']]: T['methods'][K] extends (...args: infer A) => infer R ? (this: DeriveActionInstance<T>, ...args: A) => R : T['methods'][K];
     };
 } : T;
+export {};
 //# sourceMappingURL=index.d.ts.map
