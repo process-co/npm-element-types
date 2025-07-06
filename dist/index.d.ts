@@ -202,6 +202,10 @@ export type PropType<T> = T extends {
 } ? PropName extends keyof App["props"] ? PropType<App["props"][PropName]> : unknown : unknown : App extends {
     props: Record<string, any>;
 } ? PropName extends keyof App["props"] ? PropType<App["props"][PropName]> : unknown : unknown : T extends {
+    props: Record<string, any>;
+} ? {
+    [K in keyof T["props"]]: PropType<T["props"][K]>;
+} : T extends {
     type: "http_request";
 } ? {
     execute: () => Promise<{
@@ -236,6 +240,7 @@ export type ModuleShape = {
 export type Spread<T> = {
     [K in keyof T]: T[K];
 };
+export type DeriveSignalInstance<T> = DeriveAppInstance<T>;
 export type DeriveAppInstance<T> = Spread<Omit<T, "props" | "propDefinitions" | "methods"> & (T extends {
     props: Record<string, any>;
 } ? {
@@ -285,6 +290,7 @@ export type PropDefinition = {
 };
 export declare function defineApp<T extends object>(app: T & ThisType<DeriveAppInstance<T>>): T;
 export declare function defineAction<T extends object>(action: T & ThisType<DeriveActionInstance<T>>): T;
+export declare function defineSignal<T extends object>(signal: T & ThisType<DeriveSignalInstance<T>>): T;
 export type OnChangeOpts = {
     layoutShift?: boolean;
 };

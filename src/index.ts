@@ -77,7 +77,7 @@ export type UppercaseHTTPMethod =
   | "TRACE"
   | "PATCH";
 
-  export type JSONValue =
+export type JSONValue =
   | string
   | number
   | boolean
@@ -203,7 +203,10 @@ export type PropType<T> =
   ? PropType<App["props"][PropName]>
   : unknown
   : unknown
-  // 3. Built-in types
+  // 3. Nested objects (recursion) - handle objects with their own props
+  : T extends { props: Record<string, any> }
+  ? { [K in keyof T["props"]]: PropType<T["props"][K]> }
+  // 4. Built-in types
   : T extends { type: "http_request" }
   ? { execute: () => Promise<{ headers?: Record<string, string>;[key: string]: any }> }
   : T extends { type: "string" } ? string
@@ -216,24 +219,8 @@ export type PropType<T> =
     flow: FlowFunctions;
     execute: () => Promise<{ headers?: Record<string, string>;[key: string]: any }>
   }
-  // 4. Fallback
+  // 5. Fallback
   : unknown;
-// export type PropType<T> =
-//   T extends { props: Record<string, any>; methods: Record<string, any> }
-//   ? DeriveAppInstance<T>
-//   : T extends { propDefinition: readonly [infer App, infer PropName] }
-//   ? App extends { props: Record<string, any> }
-//     ? PropName extends keyof App["props"]
-//       ? PropType<App["props"][PropName]>
-//       : unknown
-//     : unknown
-//   : T extends { type: "http_request" }
-//   ? { execute: () => Promise<{ headers?: Record<string, string>; [key: string]: any }> }
-//   : T extends { type: "string" } ? string
-//   : T extends { type: "object" } ? Record<string, unknown>
-//   : T extends { type: "number" } ? number
-//   : T extends { type: "boolean" } ? boolean
-//   : unknown;
 
 // Base module shape type
 export type ModuleShape = {
@@ -254,6 +241,9 @@ export type Spread<T> = { [K in keyof T]: T[K] };
 //     { [K in keyof T["methods"]]: T["methods"][K] }
 //   >
 //   : never;
+
+export type DeriveSignalInstance<T> = DeriveAppInstance<T>
+
 
 export type DeriveAppInstance<T> =
   Spread<
@@ -278,30 +268,6 @@ export type PropDefinitionType<App, PropName extends string> =
   : unknown;
 
 // --- Add this helper above DeriveActionInstance ---
-
-type InferProp<P> =
-  // 1. propDefinition support (new)
-  P extends { propDefinition: readonly [infer App, infer PropName] }
-  ? App extends { propDefinitions: Record<string, any> }
-  ? PropName extends keyof App['propDefinitions']
-  ? PropType<App['propDefinitions'][PropName]>
-  : unknown
-  : App extends { props: Record<string, any> }
-  ? PropName extends keyof App['props']
-  ? PropType<App['props'][PropName]>
-  : unknown
-  : unknown
-  // 2. type: string, object, number, boolean, http_request, etc.
-  : P extends { type: string }
-  ? PropType<P>
-  // 3. Nested objects (recursion)
-  : P extends { props: Record<string, any> }
-  ? { [K in keyof P['props']]: InferProp<P['props'][K]> }
-  // 4. App with methods
-  : P extends { type: "app"; methods: Record<string, any> }
-  ? { [M in keyof P["methods"]]: P["methods"][M] }
-  // 5. Fallback
-  : P;
 
 // Enhanced action instance type
 export type DeriveActionInstance<T> =
@@ -348,6 +314,10 @@ export function defineApp<T extends object>(app: T & ThisType<DeriveAppInstance<
 // Helper to provide ThisType context for action definitions
 export function defineAction<T extends object>(action: T & ThisType<DeriveActionInstance<T>>): T {
   return action;
+}
+
+export function defineSignal<T extends object>(signal: T & ThisType<DeriveSignalInstance<T>>): T {
+  return signal;
 }
 
 export type OnChangeOpts = { layoutShift?: boolean };
