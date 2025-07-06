@@ -103,32 +103,19 @@ export type DeriveAppInstance<T> = Spread<Omit<T, "props" | "propDefinitions" | 
 export type PropDefinitionType<App, PropName extends string> = App extends {
     propDefinitions: Record<string, any>;
 } ? PropName extends keyof App['propDefinitions'] ? PropType<App['propDefinitions'][PropName]> : unknown : unknown;
-type InferProp<P> = P extends {
-    propDefinition: readonly [infer App, infer PropName];
-} ? App extends {
+export type DeriveActionInstance<T> = Spread<Omit<T, "props" | "propDefinitions" | "methods"> & (T extends {
+    props: Record<string, any>;
+} ? {
+    [K in keyof T["props"]]: PropType<T["props"][K]>;
+} : {}) & (T extends {
     propDefinitions: Record<string, any>;
-} ? PropName extends keyof App['propDefinitions'] ? PropType<App['propDefinitions'][PropName]> : unknown : App extends {
-    props: Record<string, any>;
-} ? PropName extends keyof App['props'] ? PropType<App['props'][PropName]> : unknown : unknown : P extends {
-    type: string;
-} ? PropType<P> : P extends {
-    props: Record<string, any>;
 } ? {
-    [K in keyof P['props']]: InferProp<P['props'][K]>;
-} : P extends {
-    type: "app";
+    [K in keyof T["propDefinitions"]]: PropType<T["propDefinitions"][K]>;
+} : {}) & (T extends {
     methods: Record<string, any>;
 } ? {
-    [M in keyof P["methods"]]: P["methods"][M];
-} : P;
-export type DeriveActionInstance<T> = T extends {
-    methods: Record<string, any>;
-    props: Record<string, any>;
-} ? Spread<Omit<T, "props" | "methods"> & {
-    [K in keyof T["props"]]: InferProp<T["props"][K]>;
-} & {
     [K in keyof T["methods"]]: T["methods"][K];
-}> : never;
+} : {})>;
 export type ModuleWithThis<T> = T & ThisType<DeriveActionInstance<T>>;
 export interface Action<P extends Record<string, any> = Record<string, any>> extends ModuleDefinition {
     type: "action";
@@ -166,5 +153,4 @@ export type WithThis<T> = T extends {
         [K in keyof T['methods']]: T['methods'][K] extends (...args: infer A) => infer R ? (this: DeriveActionInstance<T>, ...args: A) => R : T['methods'][K];
     };
 } : T;
-export {};
 //# sourceMappingURL=index.d.ts.map

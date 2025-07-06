@@ -108,13 +108,18 @@ type InferProp<P> =
 
 // Enhanced action instance type
 export type DeriveActionInstance<T> =
-  T extends { methods: Record<string, any>; props: Record<string, any> }
-    ? Spread<
-        Omit<T, "props" | "methods"> &
-        { [K in keyof T["props"]]: InferProp<T["props"][K]> } &
-        { [K in keyof T["methods"]]: T["methods"][K] }
-      >
-    : never;
+  Spread<
+    Omit<T, "props" | "propDefinitions" | "methods"> &
+    (T extends { props: Record<string, any> }
+      ? { [K in keyof T["props"]]: PropType<T["props"][K]> }
+      : {}) &
+    (T extends { propDefinitions: Record<string, any> }
+      ? { [K in keyof T["propDefinitions"]]: PropType<T["propDefinitions"][K]> }
+      : {}) &
+    (T extends { methods: Record<string, any> }
+      ? { [K in keyof T["methods"]]: T["methods"][K] }
+      : {})
+  >;
 
 // Helper type to create a module with proper this context
 export type ModuleWithThis<T> = T & ThisType<DeriveActionInstance<T>>;
