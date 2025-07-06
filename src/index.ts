@@ -22,21 +22,49 @@ export type ModuleDefinition = {
 
 // Utility type for transforming prop definitions to their runtime types
 export type PropType<T> =
+  // 1. If T is an app definition, derive its instance type
   T extends { props: Record<string, any>; methods: Record<string, any> }
-  ? DeriveAppInstance<T>
+    ? DeriveAppInstance<T>
+  // 2. If T is a propDefinition, resolve from propDefinitions or props
   : T extends { propDefinition: readonly [infer App, infer PropName] }
-  ? App extends { props: Record<string, any> }
-    ? PropName extends keyof App["props"]
-      ? PropType<App["props"][PropName]>
-      : unknown
-    : unknown
+    ? App extends { propDefinitions: Record<string, any> }
+      ? PropName extends keyof App["propDefinitions"]
+        ? PropType<App["propDefinitions"][PropName]>
+        : App extends { props: Record<string, any> }
+          ? PropName extends keyof App["props"]
+            ? PropType<App["props"][PropName]>
+            : unknown
+          : unknown
+      : App extends { props: Record<string, any> }
+        ? PropName extends keyof App["props"]
+          ? PropType<App["props"][PropName]>
+          : unknown
+        : unknown
+  // 3. Built-in types
   : T extends { type: "http_request" }
-  ? { execute: () => Promise<{ headers?: Record<string, string>; [key: string]: any }> }
+    ? { execute: () => Promise<{ headers?: Record<string, string>; [key: string]: any }> }
   : T extends { type: "string" } ? string
   : T extends { type: "object" } ? Record<string, unknown>
   : T extends { type: "number" } ? number
   : T extends { type: "boolean" } ? boolean
+  // 4. Fallback
   : unknown;
+// export type PropType<T> =
+//   T extends { props: Record<string, any>; methods: Record<string, any> }
+//   ? DeriveAppInstance<T>
+//   : T extends { propDefinition: readonly [infer App, infer PropName] }
+//   ? App extends { props: Record<string, any> }
+//     ? PropName extends keyof App["props"]
+//       ? PropType<App["props"][PropName]>
+//       : unknown
+//     : unknown
+//   : T extends { type: "http_request" }
+//   ? { execute: () => Promise<{ headers?: Record<string, string>; [key: string]: any }> }
+//   : T extends { type: "string" } ? string
+//   : T extends { type: "object" } ? Record<string, unknown>
+//   : T extends { type: "number" } ? number
+//   : T extends { type: "boolean" } ? boolean
+//   : unknown;
 
 // Base module shape type
 export type ModuleShape = {

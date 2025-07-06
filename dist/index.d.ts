@@ -62,6 +62,10 @@ export type PropType<T> = T extends {
 } ? DeriveAppInstance<T> : T extends {
     propDefinition: readonly [infer App, infer PropName];
 } ? App extends {
+    propDefinitions: Record<string, any>;
+} ? PropName extends keyof App["propDefinitions"] ? PropType<App["propDefinitions"][PropName]> : App extends {
+    props: Record<string, any>;
+} ? PropName extends keyof App["props"] ? PropType<App["props"][PropName]> : unknown : unknown : App extends {
     props: Record<string, any>;
 } ? PropName extends keyof App["props"] ? PropType<App["props"][PropName]> : unknown : unknown : T extends {
     type: "http_request";
