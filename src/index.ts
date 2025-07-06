@@ -21,34 +21,201 @@ export type ModuleDefinition = {
   methods: Record<string, (params: any) => Promise<unknown>>;
 };
 
+/**
+ * Http Response.
+ */
+export interface HTTPResponse {
+  /**
+   * HTTP Status
+   */
+  status: number;
+  /**
+   * Http Body
+   */
+  body: string | Buffer | NodeJS.ReadableStream;
+  /**
+   * If true, issue the response when the promise returned is resolved, otherwise issue
+   * the response at the end of the workflow execution
+   */
+  immediate?: boolean;
+}
+
+export interface FlowFunctions {
+  exit: (reason: string) => void;
+  delay: (ms: number, context: object) => {
+    resume_url: string;
+    cancel_url: string;
+  };
+  rerun: (ms: number, context: object) => {
+    resume_url: string;
+    cancel_url: string;
+  };
+  suspend: (ms: number, context: object) => {
+    resume_url: string;
+    cancel_url: string;
+  };
+  refreshTimeout: () => string;
+}
+
+export type SendPayload = any;
+
+export interface SendConfigHTTPKv {
+  [key: string]: string;
+}
+export interface SendConfigHTTPAuth {
+  username: string;
+  password: string;
+}
+export type UppercaseHTTPMethod =
+  | "GET"
+  | "HEAD"
+  | "POST"
+  | "PUT"
+  | "DELETE"
+  | "CONNECT"
+  | "OPTIONS"
+  | "TRACE"
+  | "PATCH";
+
+  export type JSONValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JSONValue[]
+  | { [key: string]: JSONValue; };
+
+export interface SendConfigHTTP {
+  method?: UppercaseHTTPMethod;
+  url: string;
+  headers?: SendConfigHTTPKv;
+  params?: SendConfigHTTPKv;
+  auth?: SendConfigHTTPAuth;
+  data?: SendPayload;
+}
+export interface SendConfigS3 {
+  bucket: string;
+  prefix: string;
+  payload: SendPayload;
+}
+export interface SendConfigEmail {
+  subject: string;
+  text?: string;
+  html?: string;
+}
+export interface SendConfigEmit {
+  raw_event: SendPayload;
+}
+export interface SendConfigSSE {
+  channel: string;
+  payload: SendPayload;
+}
+export interface SendFunctionsWrapper {
+  http: (config: SendConfigHTTP) => void;
+  email: (config: SendConfigEmail) => void;
+  emit: (config: SendConfigEmit) => void;
+  s3: (config: SendConfigS3) => void;
+  sse: (config: SendConfigSSE) => void;
+}
+
+export interface IFile {
+  delete(): Promise<void>;
+  createReadStream(): Promise<NodeJS.ReadableStream>;
+  createWriteStream(contentType?: string, contentLength?: number): Promise<NodeJS.WritableStream>;
+  toEncodedString(encoding?: string, start?: number, end?: number): Promise<string>;
+  toUrl(): Promise<string>;
+  toFile(localFilePath: string): Promise<void>;
+  toBuffer(): Promise<Buffer>;
+  fromReadableStream(readableStream: NodeJS.ReadableStream, contentType?: string, contentSize?: number): Promise<IFile>;
+  fromFile(localFilePath: string, contentType?: string): Promise<IFile>;
+  fromUrl(url: string, options?: any): Promise<IFile>;
+  toJSON(): any;
+}
+
+export interface IApi {
+  open(path: string): IFile;
+  openDescriptor(descriptor: any): IFile;
+  dir(path?: string): AsyncGenerator<{
+    isDirectory: () => boolean;
+    isFile: () => boolean;
+    path: string;
+    name: string;
+    size?: number;
+    modifiedAt?: Date;
+    file?: IFile;
+  }>;
+}
+
+export interface ProcessFunctions {
+  export: (key: string, value: JSONValue) => void;
+  send: SendFunctionsWrapper;
+  /**
+   * Respond to an HTTP interface.
+   * @param response Define the status and body of the request.
+   * @returns A promise that is fulfilled when the body is read or an immediate response is issued
+   */
+  respond: (response: HTTPResponse) => Promise<any> | void;
+  flow: FlowFunctions;
+  files: IApi;
+}
+
+export interface ActionRunOptions {
+  $: ProcessFunctions;
+  steps: JSONValue;
+}
+
+export interface EmitMetadata {
+  id?: string | number;
+  name?: string;
+  summary?: string;
+  ts?: number;
+}
+
+export interface IdEmitMetadata extends EmitMetadata {
+  id: string | number;
+}
+
+type EmitFunction = {
+  $emit: (event: JSONValue, metadata?: EmitMetadata) => Promise<void>;
+};
+
+type IdEmitFunction = {
+  $emit: (event: JSONValue, metadata: IdEmitMetadata) => Promise<void>;
+};
+
 // Utility type for transforming prop definitions to their runtime types
 export type PropType<T> =
   // 1. If T is an app definition, derive its instance type
   T extends { props: Record<string, any>; methods: Record<string, any> }
-    ? DeriveAppInstance<T>
+  ? DeriveAppInstance<T>
   // 2. If T is a propDefinition, resolve from propDefinitions or props
   : T extends { propDefinition: readonly [infer App, infer PropName] }
-    ? App extends { propDefinitions: Record<string, any> }
-      ? PropName extends keyof App["propDefinitions"]
-        ? PropType<App["propDefinitions"][PropName]>
-        : App extends { props: Record<string, any> }
-          ? PropName extends keyof App["props"]
-            ? PropType<App["props"][PropName]>
-            : unknown
-          : unknown
-      : App extends { props: Record<string, any> }
-        ? PropName extends keyof App["props"]
-          ? PropType<App["props"][PropName]>
-          : unknown
-        : unknown
+  ? App extends { propDefinitions: Record<string, any> }
+  ? PropName extends keyof App["propDefinitions"]
+  ? PropType<App["propDefinitions"][PropName]>
+  : App extends { props: Record<string, any> }
+  ? PropName extends keyof App["props"]
+  ? PropType<App["props"][PropName]>
+  : unknown
+  : unknown
+  : App extends { props: Record<string, any> }
+  ? PropName extends keyof App["props"]
+  ? PropType<App["props"][PropName]>
+  : unknown
+  : unknown
   // 3. Built-in types
   : T extends { type: "http_request" }
-    ? { execute: () => Promise<{ headers?: Record<string, string>; [key: string]: any }> }
+  ? { execute: () => Promise<{ headers?: Record<string, string>;[key: string]: any }> }
   : T extends { type: "string" } ? string
   : T extends { type: "object" } ? Record<string, unknown>
   : T extends { type: "number" } ? number
   : T extends { type: "boolean" } ? boolean
   : T extends { type: "integer" } ? number
+  : T extends { type: "$.interface.http" } ? {
+    respond: (response: HTTPResponse) => Promise<any> | void;
+    flow: FlowFunctions;
+    execute: () => Promise<{ headers?: Record<string, string>;[key: string]: any }>
+  }
   // 4. Fallback
   : unknown;
 // export type PropType<T> =
@@ -105,34 +272,34 @@ export type DeriveAppInstance<T> =
 // In your element-types
 export type PropDefinitionType<App, PropName extends string> =
   App extends { propDefinitions: Record<string, any> }
-    ? PropName extends keyof App['propDefinitions']
-      ? PropType<App['propDefinitions'][PropName]>
-      : unknown
-    : unknown;
+  ? PropName extends keyof App['propDefinitions']
+  ? PropType<App['propDefinitions'][PropName]>
+  : unknown
+  : unknown;
 
 // --- Add this helper above DeriveActionInstance ---
 
 type InferProp<P> =
   // 1. propDefinition support (new)
   P extends { propDefinition: readonly [infer App, infer PropName] }
-    ? App extends { propDefinitions: Record<string, any> }
-      ? PropName extends keyof App['propDefinitions']
-        ? PropType<App['propDefinitions'][PropName]>
-        : unknown
-      : App extends { props: Record<string, any> }
-        ? PropName extends keyof App['props']
-          ? PropType<App['props'][PropName]>
-          : unknown
-        : unknown
+  ? App extends { propDefinitions: Record<string, any> }
+  ? PropName extends keyof App['propDefinitions']
+  ? PropType<App['propDefinitions'][PropName]>
+  : unknown
+  : App extends { props: Record<string, any> }
+  ? PropName extends keyof App['props']
+  ? PropType<App['props'][PropName]>
+  : unknown
+  : unknown
   // 2. type: string, object, number, boolean, http_request, etc.
   : P extends { type: string }
-    ? PropType<P>
+  ? PropType<P>
   // 3. Nested objects (recursion)
   : P extends { props: Record<string, any> }
-    ? { [K in keyof P['props']]: InferProp<P['props'][K]> }
+  ? { [K in keyof P['props']]: InferProp<P['props'][K]> }
   // 4. App with methods
   : P extends { type: "app"; methods: Record<string, any> }
-    ? { [M in keyof P["methods"]]: P["methods"][M] }
+  ? { [M in keyof P["methods"]]: P["methods"][M] }
   // 5. Fallback
   : P;
 

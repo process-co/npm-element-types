@@ -61,6 +61,135 @@ export type ModuleDefinition = {
     propDefinitions: Record<string, unknown>;
     methods: Record<string, (params: any) => Promise<unknown>>;
 };
+/**
+ * Http Response.
+ */
+export interface HTTPResponse {
+    /**
+     * HTTP Status
+     */
+    status: number;
+    /**
+     * Http Body
+     */
+    body: string | Buffer | NodeJS.ReadableStream;
+    /**
+     * If true, issue the response when the promise returned is resolved, otherwise issue
+     * the response at the end of the workflow execution
+     */
+    immediate?: boolean;
+}
+export interface FlowFunctions {
+    exit: (reason: string) => void;
+    delay: (ms: number, context: object) => {
+        resume_url: string;
+        cancel_url: string;
+    };
+    rerun: (ms: number, context: object) => {
+        resume_url: string;
+        cancel_url: string;
+    };
+    suspend: (ms: number, context: object) => {
+        resume_url: string;
+        cancel_url: string;
+    };
+    refreshTimeout: () => string;
+}
+export type SendPayload = any;
+export interface SendConfigHTTPKv {
+    [key: string]: string;
+}
+export interface SendConfigHTTPAuth {
+    username: string;
+    password: string;
+}
+export type UppercaseHTTPMethod = "GET" | "HEAD" | "POST" | "PUT" | "DELETE" | "CONNECT" | "OPTIONS" | "TRACE" | "PATCH";
+export type JSONValue = string | number | boolean | null | JSONValue[] | {
+    [key: string]: JSONValue;
+};
+export interface SendConfigHTTP {
+    method?: UppercaseHTTPMethod;
+    url: string;
+    headers?: SendConfigHTTPKv;
+    params?: SendConfigHTTPKv;
+    auth?: SendConfigHTTPAuth;
+    data?: SendPayload;
+}
+export interface SendConfigS3 {
+    bucket: string;
+    prefix: string;
+    payload: SendPayload;
+}
+export interface SendConfigEmail {
+    subject: string;
+    text?: string;
+    html?: string;
+}
+export interface SendConfigEmit {
+    raw_event: SendPayload;
+}
+export interface SendConfigSSE {
+    channel: string;
+    payload: SendPayload;
+}
+export interface SendFunctionsWrapper {
+    http: (config: SendConfigHTTP) => void;
+    email: (config: SendConfigEmail) => void;
+    emit: (config: SendConfigEmit) => void;
+    s3: (config: SendConfigS3) => void;
+    sse: (config: SendConfigSSE) => void;
+}
+export interface IFile {
+    delete(): Promise<void>;
+    createReadStream(): Promise<NodeJS.ReadableStream>;
+    createWriteStream(contentType?: string, contentLength?: number): Promise<NodeJS.WritableStream>;
+    toEncodedString(encoding?: string, start?: number, end?: number): Promise<string>;
+    toUrl(): Promise<string>;
+    toFile(localFilePath: string): Promise<void>;
+    toBuffer(): Promise<Buffer>;
+    fromReadableStream(readableStream: NodeJS.ReadableStream, contentType?: string, contentSize?: number): Promise<IFile>;
+    fromFile(localFilePath: string, contentType?: string): Promise<IFile>;
+    fromUrl(url: string, options?: any): Promise<IFile>;
+    toJSON(): any;
+}
+export interface IApi {
+    open(path: string): IFile;
+    openDescriptor(descriptor: any): IFile;
+    dir(path?: string): AsyncGenerator<{
+        isDirectory: () => boolean;
+        isFile: () => boolean;
+        path: string;
+        name: string;
+        size?: number;
+        modifiedAt?: Date;
+        file?: IFile;
+    }>;
+}
+export interface ProcessFunctions {
+    export: (key: string, value: JSONValue) => void;
+    send: SendFunctionsWrapper;
+    /**
+     * Respond to an HTTP interface.
+     * @param response Define the status and body of the request.
+     * @returns A promise that is fulfilled when the body is read or an immediate response is issued
+     */
+    respond: (response: HTTPResponse) => Promise<any> | void;
+    flow: FlowFunctions;
+    files: IApi;
+}
+export interface ActionRunOptions {
+    $: ProcessFunctions;
+    steps: JSONValue;
+}
+export interface EmitMetadata {
+    id?: string | number;
+    name?: string;
+    summary?: string;
+    ts?: number;
+}
+export interface IdEmitMetadata extends EmitMetadata {
+    id: string | number;
+}
 export type PropType<T> = T extends {
     props: Record<string, any>;
     methods: Record<string, any>;
@@ -89,7 +218,16 @@ export type PropType<T> = T extends {
     type: "boolean";
 } ? boolean : T extends {
     type: "integer";
-} ? number : unknown;
+} ? number : T extends {
+    type: "$.interface.http";
+} ? {
+    respond: (response: HTTPResponse) => Promise<any> | void;
+    flow: FlowFunctions;
+    execute: () => Promise<{
+        headers?: Record<string, string>;
+        [key: string]: any;
+    }>;
+} : unknown;
 export type ModuleShape = {
     type: string;
     props: Record<string, any>;
