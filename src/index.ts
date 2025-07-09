@@ -367,10 +367,8 @@ export function defineAction<T extends object>(action: T & ThisType<DeriveAction
 }
 
 export function defineSignal<T extends { run: (event: SignalEventShape) => Promise<void> }>(signal: T & ThisType<DeriveSignalInstance<T>>): T {
-    console.log("defineSignal", signal);
     return signal;
-}
-
+}  
 export type OnChangeOpts = { layoutShift?: boolean };
 
 export type ElementUIProps<T> = {
