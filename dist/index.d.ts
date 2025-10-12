@@ -55,6 +55,20 @@ export type ElementIcon = {
     type: "FontAwesome" | "MaterialIcons" | "ProcessIcons" | "RemoteImage";
     icon: string | ['far' | 'fas' | 'fab' | 'fal' | 'fad', string];
 } | string;
+export type ISlotDefinition = {
+    dynamic: {
+        id: string | "{{DYNAMIC_GUID}}";
+        path: string;
+        idPath: string;
+        labelPath: string;
+        enabledPath: string;
+    };
+    static: {
+        id: string;
+        label: string;
+        enabled: boolean;
+    }[];
+};
 export type ModuleDefinition = {
     type: string;
     app: string;
