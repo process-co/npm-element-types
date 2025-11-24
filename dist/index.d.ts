@@ -259,6 +259,7 @@ export type PropType<T> = T extends {
 } ? {
     respond: (response: HTTPResponse) => Promise<any> | void;
     flow: FlowFunctions;
+    end: () => void;
     execute: () => Promise<{
         headers?: Record<string, string>;
         [key: string]: any;

@@ -188,6 +188,7 @@ export interface ProcessFunctions {
      */
     respond: (response: HTTPResponse) => Promise<any> | void;
     flow: FlowFunctions;
+    // end: () => void;
     files: IApi;
 }
 
@@ -249,6 +250,7 @@ export type PropType<T> =
     : T extends { type: "$.interface.http" } ? {
         respond: (response: HTTPResponse) => Promise<any> | void;
         flow: FlowFunctions;
+        end: () => void;
         execute: () => Promise<{ headers?: Record<string, string>;[key: string]: any }>
     }
     // 5. Fallback
