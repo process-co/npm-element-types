@@ -251,7 +251,7 @@ export type PropType<T> =
     : T extends { type: "integer" } ? number
     : T extends { type: "$.interface.http" } ? {
         respond: (response: HTTPResponse) => Promise<any> | void;
-        authenticate: (authType: HTTPAuthenticationType, options?: { username?: string; password?: string; token?: string }) => Promise<any> | void;
+        authenticate: (authType: HTTPAuthenticationType, options?: { token?: string }) => Promise<any> | void;
         flow: FlowFunctions;
         end: () => void;
         execute: () => Promise<{ headers?: Record<string, string>;[key: string]: any }>

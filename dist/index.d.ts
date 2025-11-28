@@ -260,8 +260,6 @@ export type PropType<T> = T extends {
 } ? {
     respond: (response: HTTPResponse) => Promise<any> | void;
     authenticate: (authType: HTTPAuthenticationType, options?: {
-        username?: string;
-        password?: string;
         token?: string;
     }) => Promise<any> | void;
     flow: FlowFunctions;
