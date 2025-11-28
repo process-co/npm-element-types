@@ -133,6 +133,7 @@ export interface SendConfigHTTPAuth {
     password: string;
 }
 export type UppercaseHTTPMethod = "GET" | "HEAD" | "POST" | "PUT" | "DELETE" | "CONNECT" | "OPTIONS" | "TRACE" | "PATCH";
+export type HTTPAuthenticationType = "none" | "simple" | "platform" | "external";
 export type JSONValue = string | number | boolean | null | JSONValue[] | {
     [key: string]: JSONValue;
 };
@@ -258,6 +259,11 @@ export type PropType<T> = T extends {
     type: "$.interface.http";
 } ? {
     respond: (response: HTTPResponse) => Promise<any> | void;
+    authenticate: (authType: HTTPAuthenticationType, options?: {
+        username?: string;
+        password?: string;
+        token?: string;
+    }) => Promise<any> | void;
     flow: FlowFunctions;
     end: () => void;
     execute: () => Promise<{

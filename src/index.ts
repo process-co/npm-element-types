@@ -15,16 +15,16 @@ export type ElementIcon = { type: "FontAwesome" | "MaterialIcons" | "ProcessIcon
 
 export type ISlotDefinition = {
     dynamic: {
-        id:string | "{{DYNAMIC_GUID}}";
-        path:string;
-        idPath:string;
-        labelPath:string;
-        enabledPath:string;
+        id: string | "{{DYNAMIC_GUID}}";
+        path: string;
+        idPath: string;
+        labelPath: string;
+        enabledPath: string;
     };
     static: {
-        id:string;
-        label:string;
-        enabled:boolean;
+        id: string;
+        label: string;
+        enabled: boolean;
     }[];
 }
 
@@ -108,6 +108,8 @@ export type UppercaseHTTPMethod =
     | "OPTIONS"
     | "TRACE"
     | "PATCH";
+
+export type HTTPAuthenticationType = "none" | "simple" | "platform" | "external";
 
 export type JSONValue =
     | string
@@ -249,6 +251,7 @@ export type PropType<T> =
     : T extends { type: "integer" } ? number
     : T extends { type: "$.interface.http" } ? {
         respond: (response: HTTPResponse) => Promise<any> | void;
+        authenticate: (authType: HTTPAuthenticationType, options?: { username?: string; password?: string; token?: string }) => Promise<any> | void;
         flow: FlowFunctions;
         end: () => void;
         execute: () => Promise<{ headers?: Record<string, string>;[key: string]: any }>
@@ -385,7 +388,7 @@ export function defineAction<T extends object>(action: T & ThisType<DeriveAction
 
 export function defineSignal<T extends { run: (event: SignalEventShape) => Promise<void> }>(signal: T & ThisType<DeriveSignalInstance<T>>): T {
     return signal;
-}  
+}
 export type OnChangeOpts = { layoutShift?: boolean };
 
 export type ElementUIProps<T> = {
