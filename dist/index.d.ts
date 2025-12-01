@@ -75,7 +75,17 @@ export type ModuleDefinition = {
     propDefinitions: Record<string, unknown>;
     methods: Record<string, (params: any) => Promise<unknown>>;
 };
+export type ProcessTicket = {
+    requestId: string;
+    timestamp: string;
+    executionId: string;
+    flowId: string;
+    sourceId: 'webhook' | 'smtp' | 'manual' | 'scheduled';
+    verified: boolean;
+    buildId: string;
+};
 export type SignalEventShape = {
+    $$process: ProcessTicket;
     method: string;
     path: string;
     query: {
@@ -84,7 +94,7 @@ export type SignalEventShape = {
     headers: {
         [key: string]: string;
     };
-    bodyRaw: string;
+    bodyRaw: string | Buffer | NodeJS.ReadableStream;
     body: {
         [key: string]: JSONValue;
     };
@@ -221,7 +231,7 @@ export interface IdEmitMetadata extends EmitMetadata {
     id: string | number;
 }
 type EmitFunction = {
-    $emit: (event: JSONValue, metadata?: EmitMetadata) => Promise<void>;
+    $emit: (event: SignalEventShape | SignalEventShape["body"] | SignalEventShape["bodyRaw"] | JSONValue, metadata?: EmitMetadata) => Promise<void>;
 };
 export type PropType<T> = T extends {
     props: Record<string, any>;
