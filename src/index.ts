@@ -41,7 +41,7 @@ export type ProcessTicket = {
     timestamp: string;
     executionId: string;
     flowId: string;
-    sourceId: 'webhook' | 'smtp' | 'manual' | 'scheduled';
+    source: 'webhook' | 'smtp' | 'manual' | 'scheduled';
     verified: boolean;
     buildId: string;
 }
@@ -58,17 +58,28 @@ export type SignalEventShape = {
         [key: string]: string;
     };
 
+    hostname: string;
+
     headers: {
         [key: string]: string;
     };
 
-    bodyRaw: string | Buffer | NodeJS.ReadableStream;
+    bodyRaw: string | Buffer | NodeJS.ReadableStream | undefined;
 
     body: {
         [key: string]: JSONValue;
-    };
+    } | string | Buffer | NodeJS.ReadableStream;
 
 };
+
+export interface FileMetadata {
+    size: number;
+    contentType?: string;
+    lastModified?: Date;
+    name?: string;
+    etag?: string;
+  }
+  
 
 /**
  * Http Response.
