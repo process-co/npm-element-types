@@ -213,6 +213,12 @@ export interface IApi {
         file?: IFile;
     }>;
 }
+export interface ProcessInternalFunctions extends ProcessFunctions {
+    $transitionToSlot(slotId: string): void;
+}
+export interface FlowControlExtensions {
+    $$innerSlots?: Record<string, string>;
+}
 export interface ProcessFunctions {
     export: (key: string, value: JSONValue) => void;
     send: SendFunctionsWrapper;
@@ -225,8 +231,8 @@ export interface ProcessFunctions {
     flow: FlowFunctions;
     files: IApi;
 }
-export interface ActionRunOptions {
-    $: ProcessFunctions;
+export interface ActionRunOptions<T extends ProcessFunctions = ProcessFunctions> {
+    $: T;
     steps: JSONValue;
 }
 export interface EmitMetadata {

@@ -78,8 +78,7 @@ export interface FileMetadata {
     lastModified?: Date;
     name?: string;
     etag?: string;
-  }
-  
+}
 
 /**
  * Http Response.
@@ -210,23 +209,46 @@ export interface IApi {
     }>;
 }
 
+export interface ProcessInternalFunctions extends ProcessFunctions {
+
+    $transitionToSlot(slotId: string): void;
+
+}
+
+export interface FlowControlExtensions {
+    $$innerSlots?: Record<string, string>;
+    // /$transitionToSlot(slotId: string): void;
+}
+
 export interface ProcessFunctions {
+
     export: (key: string, value: JSONValue) => void;
+
     send: SendFunctionsWrapper;
+
     /**
      * Respond to an HTTP interface.
      * @param response Define the status and body of the request.
      * @returns A promise that is fulfilled when the body is read or an immediate response is issued
      */
     respond: (response: HTTPResponse) => Promise<any> | void;
+
     flow: FlowFunctions;
+
+
+
     // end: () => void;
+
     files: IApi;
+
 }
 
-export interface ActionRunOptions {
-    $: ProcessFunctions;
+export interface ActionRunOptions<T extends ProcessFunctions = ProcessFunctions> {
+
+    $: T;
+
     steps: JSONValue;
+
 }
 
 export interface EmitMetadata {
