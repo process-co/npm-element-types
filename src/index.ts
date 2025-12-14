@@ -217,6 +217,9 @@ export interface ProcessInternalFunctions extends ProcessFunctions {
 
 export interface FlowControlExtensions {
     $$innerSlots?: Record<string, string>;
+    $$event?: 'slotCompletionEvent' | 'slotIterationEvent';
+    $$iteration?: number;
+    $$slotId?: string;
     // /$transitionToSlot(slotId: string): void;
 }
 

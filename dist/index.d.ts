@@ -218,6 +218,9 @@ export interface ProcessInternalFunctions extends ProcessFunctions {
 }
 export interface FlowControlExtensions {
     $$innerSlots?: Record<string, string>;
+    $$event?: 'slotCompletionEvent' | 'slotIterationEvent';
+    $$iteration?: number;
+    $$slotId?: string;
 }
 export interface ProcessFunctions {
     export: (key: string, value: JSONValue) => void;
