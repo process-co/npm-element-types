@@ -273,6 +273,42 @@ type IdEmitFunction = {
     $emit: (event: JSONValue, metadata: IdEmitMetadata) => Promise<void>;
 };
 
+// ============================================
+// Template literal type parsing for $infer<T>
+// ============================================
+
+// Map string literals to actual types
+type StringToType<S extends string> = 
+  S extends "string" ? string :
+  S extends "number" ? number :
+  S extends "boolean" ? boolean :
+  S extends "null" ? null :
+  S extends "undefined" ? undefined :
+  S extends "object" ? object :
+  S extends "any" ? any :
+  S extends "unknown" ? unknown :
+  S extends "never" ? never :
+  S extends "void" ? void :
+  never;
+
+// Trim leading/trailing spaces
+type TrimSpaces<S extends string> = 
+  S extends ` ${infer R}` ? TrimSpaces<R> :
+  S extends `${infer R} ` ? TrimSpaces<R> :
+  S;
+
+// Parse union types separated by |
+type ParseUnion<S extends string> = 
+  S extends `${infer A}|${infer B}` 
+    ? StringToType<TrimSpaces<A>> | ParseUnion<B>
+    : StringToType<TrimSpaces<S>>;
+
+// Extract and parse the type parameter from $infer<...>
+type InferType<T extends string> = 
+  T extends `$infer<${infer Inner}>` 
+    ? ParseUnion<Inner> 
+    : any;  // fallback to any if no generic specified
+
 // Utility type for transforming prop definitions to their runtime types
 export type PropType<T> =
     // 1. If T is an app definition, derive its instance type
@@ -300,6 +336,11 @@ export type PropType<T> =
     : T extends { type: "http_request" }
     ? { execute: () => Promise<{ headers?: Record<string, string>;[key: string]: any }> }
     : T extends { type: "string" } ? string
+    // Handle $infer<T> with generic parameter FIRST
+    : T extends { type: `$infer<${string}>` } 
+      ? T extends { type: infer S extends string } ? InferType<S> : any
+    // Then handle plain $infer (no generic) - falls back to any
+    : T extends { type: "$infer" } ? any
     : T extends { type: "object" } ? Record<string, unknown>
     : T extends { type: "number" } ? number
     : T extends { type: "boolean" } ? boolean

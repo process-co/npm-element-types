@@ -250,6 +250,10 @@ export interface IdEmitMetadata extends EmitMetadata {
 type EmitFunction = {
     $emit: (event: SignalEventShape | SignalEventShape["body"] | SignalEventShape["bodyRaw"] | JSONValue, metadata?: EmitMetadata) => Promise<void>;
 };
+type StringToType<S extends string> = S extends "string" ? string : S extends "number" ? number : S extends "boolean" ? boolean : S extends "null" ? null : S extends "undefined" ? undefined : S extends "object" ? object : S extends "any" ? any : S extends "unknown" ? unknown : S extends "never" ? never : S extends "void" ? void : never;
+type TrimSpaces<S extends string> = S extends ` ${infer R}` ? TrimSpaces<R> : S extends `${infer R} ` ? TrimSpaces<R> : S;
+type ParseUnion<S extends string> = S extends `${infer A}|${infer B}` ? StringToType<TrimSpaces<A>> | ParseUnion<B> : StringToType<TrimSpaces<S>>;
+type InferType<T extends string> = T extends `$infer<${infer Inner}>` ? ParseUnion<Inner> : any;
 export type PropType<T> = T extends {
     props: Record<string, any>;
     methods: Record<string, any>;
@@ -275,6 +279,12 @@ export type PropType<T> = T extends {
 } : T extends {
     type: "string";
 } ? string : T extends {
+    type: `$infer<${string}>`;
+} ? T extends {
+    type: infer S extends string;
+} ? InferType<S> : any : T extends {
+    type: "$infer";
+} ? any : T extends {
     type: "object";
 } ? Record<string, unknown> : T extends {
     type: "number";
