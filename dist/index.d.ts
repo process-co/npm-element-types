@@ -213,8 +213,12 @@ export interface IApi {
         file?: IFile;
     }>;
 }
+export interface SlotDefinition {
+    id: string;
+    label: string;
+}
 export interface ProcessInternalFunctions extends ProcessFunctions {
-    $transitionToSlot(slotId: string): void;
+    $transitionToSlot(SlotDefinition: SlotDefinition): void;
 }
 export interface FlowControlExtensions {
     $$innerSlots?: Record<string, string>;
