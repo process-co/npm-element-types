@@ -215,7 +215,7 @@ export interface SlotTransitionDefinition {
 }
 
 export interface ProcessInternalFunctions extends ProcessFunctions {
-    $transitionToSlot(SlotDefinition: SlotTransitionDefinition): void;
+    $transitionToSlot(slots: Array<SlotTransitionDefinition>): void;
 }
 
 export interface FlowControlExtensions {
