@@ -281,35 +281,35 @@ type IdEmitFunction = {
 // ============================================
 
 // Map string literals to actual types
-type StringToType<S extends string> = 
-  S extends "string" ? string :
-  S extends "number" ? number :
-  S extends "boolean" ? boolean :
-  S extends "null" ? null :
-  S extends "undefined" ? undefined :
-  S extends "object" ? object :
-  S extends "any" ? any :
-  S extends "unknown" ? unknown :
-  S extends "never" ? never :
-  S extends "void" ? void :
-  never;
+type StringToType<S extends string> =
+    S extends "string" ? string :
+    S extends "number" ? number :
+    S extends "boolean" ? boolean :
+    S extends "null" ? null :
+    S extends "undefined" ? undefined :
+    S extends "object" ? object :
+    S extends "any" ? any :
+    S extends "unknown" ? unknown :
+    S extends "never" ? never :
+    S extends "void" ? void :
+    never;
 
 // Trim leading/trailing spaces
-type TrimSpaces<S extends string> = 
-  S extends ` ${infer R}` ? TrimSpaces<R> :
-  S extends `${infer R} ` ? TrimSpaces<R> :
-  S;
+type TrimSpaces<S extends string> =
+    S extends ` ${infer R}` ? TrimSpaces<R> :
+    S extends `${infer R} ` ? TrimSpaces<R> :
+    S;
 
 // Parse union types separated by |
-type ParseUnion<S extends string> = 
-  S extends `${infer A}|${infer B}` 
+type ParseUnion<S extends string> =
+    S extends `${infer A}|${infer B}`
     ? StringToType<TrimSpaces<A>> | ParseUnion<B>
     : StringToType<TrimSpaces<S>>;
 
 // Extract and parse the type parameter from $infer<...>
-type InferType<T extends string> = 
-  T extends `$infer<${infer Inner}>` 
-    ? ParseUnion<Inner> 
+type InferType<T extends string> =
+    T extends `$infer<${infer Inner}>`
+    ? ParseUnion<Inner>
     : any;  // fallback to any if no generic specified
 
 // Utility type for transforming prop definitions to their runtime types
@@ -340,8 +340,8 @@ export type PropType<T> =
     ? { execute: () => Promise<{ headers?: Record<string, string>;[key: string]: any }> }
     : T extends { type: "string" } ? string
     // Handle $infer<T> with generic parameter FIRST
-    : T extends { type: `$infer<${string}>` } 
-      ? T extends { type: infer S extends string } ? InferType<S> : any
+    : T extends { type: `$infer<${string}>` }
+    ? T extends { type: infer S extends string } ? InferType<S> : any
     // Then handle plain $infer (no generic) - falls back to any
     : T extends { type: "$infer" } ? any
     : T extends { type: "object" } ? Record<string, unknown>
@@ -445,11 +445,22 @@ export type DeriveActionInstance<T> =
 // Helper type to create a module with proper this context
 export type ModuleWithThis<T> = T & ThisType<DeriveActionInstance<T>>;
 
+// export interface ActionRunParams {
+//     $: {
+//         export: (key: string, value: JSONValue) => void;
+//         send: SendFunctionsWrapper;
+//         respond: (response: HTTPResponse) => Promise<any> | void;
+//         flow: FlowFunctions;
+//         end: () => void;
+//         files: IApi;
+//     }
+// }
+
 // Action-specific types
 export interface Action<P extends Record<string, any> = Record<string, any>> extends ModuleDefinition {
     type: "action";
     props: P;
-    run: (this: DeriveActionInstance<Action<P>>, params: { $: any }) => Promise<unknown>;
+    run: (this: DeriveActionInstance<Action<P>>, params: ActionRunOptions) => Promise<unknown>;
 }
 
 export interface Signal<P extends Record<string, any> = Record<string, any>> extends ModuleDefinition {
@@ -488,6 +499,9 @@ export function defineAction<T extends object>(action: T & ThisType<DeriveAction
 export function defineSignal<T extends { run: (event: SignalEventShape) => Promise<void> }>(signal: T & ThisType<DeriveSignalInstance<T>>): T {
     return signal;
 }
+
+export type RunReturn<T> = T extends { run: (...args: any[]) => infer R } ? Awaited<R> : never;
+
 export type OnChangeOpts = { layoutShift?: boolean };
 
 export type ElementUIProps<T> = {

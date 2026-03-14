@@ -368,9 +368,7 @@ export type ModuleWithThis<T> = T & ThisType<DeriveActionInstance<T>>;
 export interface Action<P extends Record<string, any> = Record<string, any>> extends ModuleDefinition {
     type: "action";
     props: P;
-    run: (this: DeriveActionInstance<Action<P>>, params: {
-        $: any;
-    }) => Promise<unknown>;
+    run: (this: DeriveActionInstance<Action<P>>, params: ActionRunOptions) => Promise<unknown>;
 }
 export interface Signal<P extends Record<string, any> = Record<string, any>> extends ModuleDefinition {
     type: "signal";
@@ -396,6 +394,9 @@ export declare function defineAction<T extends object>(action: T & ThisType<Deri
 export declare function defineSignal<T extends {
     run: (event: SignalEventShape) => Promise<void>;
 }>(signal: T & ThisType<DeriveSignalInstance<T>>): T;
+export type RunReturn<T> = T extends {
+    run: (...args: any[]) => infer R;
+} ? Awaited<R> : never;
 export type OnChangeOpts = {
     layoutShift?: boolean;
 };
