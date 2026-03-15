@@ -52,7 +52,7 @@ export type ElementSignal<T> = {
     description?: string;
 } & T;
 export type ElementIcon = {
-    type: "FontAwesome" | "MaterialIcons" | "ProcessIcons" | "RemoteImage";
+    type: "FontAwesome" | "MaterialIcons" | "ProcessIcons" | "RemoteImage" | "image";
     icon: string | ['far' | 'fas' | 'fab' | 'fal' | 'fad', string];
 } | string;
 export type ISlotDefinition = {
@@ -283,6 +283,32 @@ export type PropType<T> = T extends {
 } : T extends {
     type: "string";
 } ? string : T extends {
+    type: "string(html)";
+} ? string : T extends {
+    type: "string(markdown)";
+} ? string : T extends {
+    type: "string(json)";
+} ? string : T extends {
+    type: "string(xml)";
+} ? string : T extends {
+    type: "string(yaml)";
+} ? string : T extends {
+    type: "string(csv)";
+} ? string : T extends {
+    type: "string(tsv)";
+} ? string : T extends {
+    type: "string(css)";
+} ? string : T extends {
+    type: "string(sql)";
+} ? string : T extends {
+    type: "string(email)";
+} ? string : T extends {
+    type: "string(emailList)";
+} ? string[] : T extends {
+    type: "string(urlList)";
+} ? string[] : T extends {
+    type: "string(url)";
+} ? string : T extends {
     type: `$infer<${string}>`;
 } ? T extends {
     type: infer S extends string;
@@ -384,14 +410,16 @@ export type ActionMethod<A extends Action> = (this: ActionInstance<A>, params: {
     $: any;
 }) => Promise<unknown>;
 export type PropDefinition = {
-    label: string;
-    description: string;
-    type: string;
+    label?: string;
+    description?: string;
+    type: "string" | "number" | "boolean" | "integer" | "object" | "array" | "file" | "image" | "video" | "audio" | "string(text)" | "string(html)" | "string(markdown)" | "string(json)" | "string(xml)" | "string(yaml)" | "string(csv)" | "string(tsv)" | "string(css)" | "string(sql)" | "string(email)" | "string(emailList)" | "string(urlList)" | "string(url)";
     ui?: any;
 };
-export declare function defineApp<T extends object>(app: T & ThisType<DeriveAppInstance<T>>): T;
-export declare function defineAction<T extends object>(action: T & ThisType<DeriveActionInstance<T>>): T;
-export declare function defineSignal<T extends {
+export declare function defineApp<const T extends object>(app: T & ThisType<DeriveAppInstance<T>>): T;
+export declare function defineAction<const T extends {
+    props: Record<string, PropDefinition>;
+}>(action: T & ThisType<DeriveActionInstance<T>>): T;
+export declare function defineSignal<const T extends {
     run: (event: SignalEventShape) => Promise<void>;
 }>(signal: T & ThisType<DeriveSignalInstance<T>>): T;
 export type RunReturn<T> = T extends {

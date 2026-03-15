@@ -11,7 +11,7 @@ export type ElementSource<T> = { type: "source"; icon?: ElementIcon; label?: str
 export type ElementTrigger<T> = { type: "trigger"; icon?: ElementIcon; label?: string; description?: string } & T;
 export type ElementSignal<T> = { type: "signal"; icon?: ElementIcon; label?: string; description?: string } & T;
 
-export type ElementIcon = { type: "FontAwesome" | "MaterialIcons" | "ProcessIcons" | "RemoteImage"; icon: string | ['far' | 'fas' | 'fab' | 'fal' | 'fad', string] } | string;
+export type ElementIcon = { type: "FontAwesome" | "MaterialIcons" | "ProcessIcons" | "RemoteImage" | "image"; icon: string | ['far' | 'fas' | 'fab' | 'fal' | 'fad', string] } | string;
 
 export type ISlotDefinition = {
     dynamic: {
@@ -339,6 +339,19 @@ export type PropType<T> =
     : T extends { type: "http_request" }
     ? { execute: () => Promise<{ headers?: Record<string, string>;[key: string]: any }> }
     : T extends { type: "string" } ? string
+    : T extends { type: "string(html)" } ? string
+    : T extends { type: "string(markdown)" } ? string
+    : T extends { type: "string(json)" } ? string
+    : T extends { type: "string(xml)" } ? string
+    : T extends { type: "string(yaml)" } ? string
+    : T extends { type: "string(csv)" } ? string
+    : T extends { type: "string(tsv)" } ? string
+    : T extends { type: "string(css)" } ? string
+    : T extends { type: "string(sql)" } ? string
+    : T extends { type: "string(email)" } ? string
+    : T extends { type: "string(emailList)" } ? string[]
+    : T extends { type: "string(urlList)" } ? string[]
+    : T extends { type: "string(url)" } ? string
     // Handle $infer<T> with generic parameter FIRST
     : T extends { type: `$infer<${string}>` }
     ? T extends { type: infer S extends string } ? InferType<S> : any
@@ -480,23 +493,23 @@ export type ActionMethod<A extends Action> = (this: ActionInstance<A>, params: {
 
 // Prop definition type
 export type PropDefinition = {
-    label: string;
-    description: string;
-    type: string;
+    label?: string;
+    description?: string;
+    type: "string" | "number" | "boolean" | "integer" | "object" | "array" | "file" | "image" | "video" | "audio" | "string(text)" | "string(html)" | "string(markdown)" | "string(json)" | "string(xml)" | "string(yaml)" | "string(csv)" | "string(tsv)" | "string(css)" | "string(sql)" | "string(email)" | "string(emailList)" | "string(urlList)" | "string(url)";
     ui?: any;
 };
 
 // Helper to provide ThisType context for app definitions
-export function defineApp<T extends object>(app: T & ThisType<DeriveAppInstance<T>>): T {
+export function defineApp<const T extends object>(app: T & ThisType<DeriveAppInstance<T>>): T {
     return app;
 }
 
 // Helper to provide ThisType context for action definitions
-export function defineAction<T extends object>(action: T & ThisType<DeriveActionInstance<T>>): T {
+export function defineAction<const T extends { props: Record<string, PropDefinition> }>(action: T & ThisType<DeriveActionInstance<T>>): T {
     return action;
 }
 
-export function defineSignal<T extends { run: (event: SignalEventShape) => Promise<void> }>(signal: T & ThisType<DeriveSignalInstance<T>>): T {
+export function defineSignal<const T extends { run: (event: SignalEventShape) => Promise<void> }>(signal: T & ThisType<DeriveSignalInstance<T>>): T {
     return signal;
 }
 
