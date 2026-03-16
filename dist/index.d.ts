@@ -55,19 +55,29 @@ export type ElementIcon = {
     type: "FontAwesome" | "MaterialIcons" | "ProcessIcons" | "RemoteImage" | "image";
     icon: string | ['far' | 'fas' | 'fab' | 'fal' | 'fad', string];
 } | string;
+export type ISlotInstanceDefinition = {
+    id?: string;
+    label?: string;
+    enabled?: boolean;
+    path?: string;
+    idPath?: string;
+    labelPath?: string;
+    enabledPath?: string;
+    labelPlaceholderTemplate?: string;
+    labelPlaceholderValue?: string;
+    branchValue?: string;
+    hideOnDisable?: boolean;
+};
+export type ISlotStaticInstanceDefinition = ISlotInstanceDefinition & {
+    type: "static";
+};
 export type ISlotDefinition = {
-    dynamic: {
-        id: string | "{{DYNAMIC_GUID}}";
-        path: string;
-        idPath: string;
-        labelPath: string;
-        enabledPath: string;
-    };
-    static: {
-        id: string;
-        label: string;
-        enabled: boolean;
-    }[];
+    showBranchLabels?: boolean;
+    activeSlotId?: string;
+    activeSlotLabel?: string;
+    hideDisabled?: boolean;
+    hideOnDisable?: boolean;
+    slots?: (ISlotInstanceDefinition | ISlotStaticInstanceDefinition)[];
 };
 export type ModuleDefinition = {
     type: string;
@@ -254,7 +264,7 @@ export interface IdEmitMetadata extends EmitMetadata {
 type EmitFunction = {
     $emit: (event: SignalEventShape | SignalEventShape["body"] | SignalEventShape["bodyRaw"] | JSONValue, metadata?: EmitMetadata) => Promise<void>;
 };
-type StringToType<S extends string> = S extends "string" ? string : S extends "number" ? number : S extends "boolean" ? boolean : S extends "null" ? null : S extends "undefined" ? undefined : S extends "object" ? object : S extends "any" ? any : S extends "unknown" ? unknown : S extends "never" ? never : S extends "void" ? void : never;
+type StringToType<S extends string> = S extends "string" ? string : S extends "string(text)" ? string : S extends "string(html)" ? string : S extends "string(markdown)" ? string : S extends "string(json)" ? string : S extends "string(xml)" ? string : S extends "string(yaml)" ? string : S extends "string(csv)" ? string : S extends "string(tsv)" ? string : S extends "string(css)" ? string : S extends "string(sql)" ? string : S extends "string(email)" ? string : S extends "string(emailList)" ? string : S extends "string(urlList)" ? string : S extends "string(url)" ? string : S extends "number" ? number : S extends "boolean" ? boolean : S extends "null" ? null : S extends "undefined" ? undefined : S extends "object" ? object : S extends "any" ? any : S extends "unknown" ? unknown : S extends "never" ? never : S extends "void" ? void : never;
 type TrimSpaces<S extends string> = S extends ` ${infer R}` ? TrimSpaces<R> : S extends `${infer R} ` ? TrimSpaces<R> : S;
 type ParseUnion<S extends string> = S extends `${infer A}|${infer B}` ? StringToType<TrimSpaces<A>> | ParseUnion<B> : StringToType<TrimSpaces<S>>;
 type InferType<T extends string> = T extends `$infer<${infer Inner}>` ? ParseUnion<Inner> : any;
@@ -409,15 +419,37 @@ export type SignalMethod<S extends Signal> = (this: SignalInstance<S>, params: S
 export type ActionMethod<A extends Action> = (this: ActionInstance<A>, params: {
     $: any;
 }) => Promise<unknown>;
+export type PropStringDefinitionTypes = "text" | "html" | "markdown" | "json" | "xml" | "yaml" | "csv" | "tsv" | "css" | "sql" | "email" | "emailList" | "urlList" | "url";
+export type PropDefinitionTypes = "string" | "number" | "boolean" | "integer" | "object" | "array" | "file" | "image" | "video" | "audio" | `string(${PropStringDefinitionTypes})` | `$infer<${string}>` | "$infer" | "app" | `array<${string}>`;
 export type PropDefinition = {
     label?: string;
     description?: string;
-    type: "string" | "number" | "boolean" | "integer" | "object" | "array" | "file" | "image" | "video" | "audio" | "string(text)" | "string(html)" | "string(markdown)" | "string(json)" | "string(xml)" | "string(yaml)" | "string(csv)" | "string(tsv)" | "string(css)" | "string(sql)" | "string(email)" | "string(emailList)" | "string(urlList)" | "string(url)";
+    type: PropDefinitionTypes;
     ui?: any;
+    default?: any;
+    visibleWhen?: any;
 };
 export declare function defineApp<const T extends object>(app: T & ThisType<DeriveAppInstance<T>>): T;
 export declare function defineAction<const T extends {
-    props: Record<string, PropDefinition>;
+    props?: Record<string, PropDefinition>;
+} & {
+    type: "action";
+} & {
+    name?: string;
+} & {
+    description?: string;
+} & {
+    icon?: ElementIcon;
+} & {
+    noAuth?: boolean;
+} & {
+    slots?: ISlotDefinition;
+} & {
+    methods?: Record<string, (...args: any[]) => any>;
+} & {
+    hasNew?: boolean;
+} & {
+    initValue?: any;
 }>(action: T & ThisType<DeriveActionInstance<T>>): T;
 export declare function defineSignal<const T extends {
     run: (event: SignalEventShape) => Promise<void>;
