@@ -268,6 +268,12 @@ type StringToType<S extends string> = S extends "string" ? string : S extends "s
 type TrimSpaces<S extends string> = S extends ` ${infer R}` ? TrimSpaces<R> : S extends `${infer R} ` ? TrimSpaces<R> : S;
 type ParseUnion<S extends string> = S extends `${infer A}|${infer B}` ? StringToType<TrimSpaces<A>> | ParseUnion<B> : StringToType<TrimSpaces<S>>;
 type InferType<T extends string> = T extends `$infer<${infer Inner}>` ? ParseUnion<Inner> : any;
+type PropOptionValue<T> = T extends {
+    value: infer V;
+} ? V : never;
+type PropOptionsValue<T> = T extends {
+    options: readonly (infer Option)[];
+} ? PropOptionValue<Option> : never;
 export type PropType<T> = T extends {
     props: Record<string, any>;
     methods: Record<string, any>;
@@ -291,6 +297,9 @@ export type PropType<T> = T extends {
         [key: string]: any;
     }>;
 } : T extends {
+    type: "string";
+    options: readonly unknown[];
+} ? [PropOptionsValue<T>] extends [never] ? string : PropOptionsValue<T> : T extends {
     type: "string";
 } ? string : T extends {
     type: "string(html)";
@@ -425,6 +434,10 @@ export type PropDefinition = {
     label?: string;
     description?: string;
     type: PropDefinitionTypes;
+    options?: readonly {
+        label?: string;
+        value: unknown;
+    }[];
     ui?: any;
     default?: any;
     visibleWhen?: any;

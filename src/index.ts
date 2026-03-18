@@ -338,6 +338,16 @@ type InferType<T extends string> =
     ? ParseUnion<Inner>
     : any;  // fallback to any if no generic specified
 
+type PropOptionValue<T> =
+    T extends { value: infer V }
+    ? V
+    : never;
+
+type PropOptionsValue<T> =
+    T extends { options: readonly (infer Option)[] }
+    ? PropOptionValue<Option>
+    : never;
+
 // Utility type for transforming prop definitions to their runtime types
 export type PropType<T> =
     // 1. If T is an app definition, derive its instance type
@@ -364,6 +374,8 @@ export type PropType<T> =
     // 4. Built-in types
     : T extends { type: "http_request" }
     ? { execute: () => Promise<{ headers?: Record<string, string>;[key: string]: any }> }
+    : T extends { type: "string"; options: readonly unknown[] }
+    ? [PropOptionsValue<T>] extends [never] ? string : PropOptionsValue<T>
     : T extends { type: "string" } ? string
     : T extends { type: "string(html)" } ? string
     : T extends { type: "string(markdown)" } ? string
@@ -526,6 +538,7 @@ export type PropDefinition = {
     label?: string;
     description?: string;
     type: PropDefinitionTypes;
+    options?: readonly { label?: string; value: unknown }[];
     ui?: any;
     default?: any;
     visibleWhen?: any;
