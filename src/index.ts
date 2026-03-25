@@ -1,3 +1,5 @@
+import type { z } from 'zod';
+
 // Element types
 export type ElementString = { type: "string"; label?: string; description?: string };
 export type ElementObject = { type: "object"; label?: string; description?: string };
@@ -332,6 +334,14 @@ type ParseUnion<S extends string> =
     ? StringToType<TrimSpaces<A>> | ParseUnion<B>
     : StringToType<TrimSpaces<S>>;
 
+type Expand<T> = T extends object ? { [K in keyof T]: T[K] } : T;
+type InferZodOutput<T> = T extends { _output: infer O } ? O : never;
+type InferZodObjectShape<T> = T extends { shape: infer Shape extends Record<string, z.ZodTypeAny> }
+    ? Expand<{
+        [K in keyof Shape]: InferZodOutput<Shape[K]>;
+    }>
+    : never;
+
 // Extract and parse the type parameter from $infer<...>
 type InferType<T extends string> =
     T extends `$infer<${infer Inner}>`
@@ -347,6 +357,58 @@ type PropOptionsValue<T> =
     T extends { options: readonly (infer Option)[] }
     ? PropOptionValue<Option>
     : never;
+
+type BasePropDefinition = {
+    label?: string;
+    description?: string;
+    options?: readonly { label?: string; value: unknown }[];
+    ui?: any;
+    default?: any;
+    visibleWhen?: any;
+};
+
+type PropDefinitionInput<TType = unknown> = BasePropDefinition & {
+    type: TType;
+};
+
+type PropTypeFromTypeValue<U, T = unknown> =
+    U extends z.ZodObject<any, any> ? InferZodObjectShape<U>
+    : U extends z.ZodArray<infer Item> ? Expand<Array<InferZodOutput<Item>>>
+    : U extends z.ZodTypeAny ? Expand<InferZodOutput<U>>
+    : U extends "http_request"
+    ? { execute: () => Promise<{ headers?: Record<string, string>;[key: string]: any }> }
+    : U extends "string"
+    ? [PropOptionsValue<T>] extends [never] ? string : PropOptionsValue<T>
+    : U extends "string(html)" ? string
+    : U extends "string(markdown)" ? string
+    : U extends "string(json)" ? string
+    : U extends "string(xml)" ? string
+    : U extends "string(yaml)" ? string
+    : U extends "string(base64)" ? string
+    : U extends "string(csv)" ? string
+    : U extends "string(tsv)" ? string
+    : U extends "string(css)" ? string
+    : U extends "string(sql)" ? string
+    : U extends "string(email)" ? string
+    : U extends "string(emailList)" ? string[]
+    : U extends "string(urlList)" ? string[]
+    : U extends "string(url)" ? string
+    : U extends `$infer<${string}>` ? InferType<U>
+    : U extends "$infer" ? any
+    : U extends "object" ? Record<string, unknown>
+    : U extends `object(${PropObjectDefinitionTypes})` ? any
+    : U extends `file(${PropFileDefinitionTypes})` ? IFile
+    : U extends "number" ? number
+    : U extends "boolean" ? boolean
+    : U extends "integer" ? number
+    : U extends "$.interface.http" ? {
+        respond: (response: HTTPResponse) => Promise<any> | void;
+        authenticate: (authType: HTTPAuthenticationType, options?: { token?: string }) => Promise<any> | void;
+        flow: FlowFunctions;
+        end: () => void;
+        execute: () => Promise<{ headers?: Record<string, string>;[key: string]: any }>
+    }
+    : unknown;
 
 // Utility type for transforming prop definitions to their runtime types
 export type PropType<T> =
@@ -371,41 +433,9 @@ export type PropType<T> =
     // 3. Nested objects (recursion) - handle objects with their own props
     : T extends { props: Record<string, any> }
     ? { [K in keyof T["props"]]: PropType<T["props"][K]> }
-    // 4. Built-in types
-    : T extends { type: "http_request" }
-    ? { execute: () => Promise<{ headers?: Record<string, string>;[key: string]: any }> }
-    : T extends { type: "string"; options: readonly unknown[] }
-    ? [PropOptionsValue<T>] extends [never] ? string : PropOptionsValue<T>
-    : T extends { type: "string" } ? string
-    : T extends { type: "string(html)" } ? string
-    : T extends { type: "string(markdown)" } ? string
-    : T extends { type: "string(json)" } ? string
-    : T extends { type: "string(xml)" } ? string
-    : T extends { type: "string(yaml)" } ? string
-    : T extends { type: "string(csv)" } ? string
-    : T extends { type: "string(tsv)" } ? string
-    : T extends { type: "string(css)" } ? string
-    : T extends { type: "string(sql)" } ? string
-    : T extends { type: "string(email)" } ? string
-    : T extends { type: "string(emailList)" } ? string[]
-    : T extends { type: "string(urlList)" } ? string[]
-    : T extends { type: "string(url)" } ? string
-    // Handle $infer<T> with generic parameter FIRST
-    : T extends { type: `$infer<${string}>` }
-    ? T extends { type: infer S extends string } ? InferType<S> : any
-    // Then handle plain $infer (no generic) - falls back to any
-    : T extends { type: "$infer" } ? any
-    : T extends { type: "object" } ? Record<string, unknown>
-    : T extends { type: "number" } ? number
-    : T extends { type: "boolean" } ? boolean
-    : T extends { type: "integer" } ? number
-    : T extends { type: "$.interface.http" } ? {
-        respond: (response: HTTPResponse) => Promise<any> | void;
-        authenticate: (authType: HTTPAuthenticationType, options?: { token?: string }) => Promise<any> | void;
-        flow: FlowFunctions;
-        end: () => void;
-        execute: () => Promise<{ headers?: Record<string, string>;[key: string]: any }>
-    }
+    // 4. Map the type field to the runtime property type
+    : T extends { type: infer U }
+    ? PropTypeFromTypeValue<U, T>
     // 5. Fallback
     : unknown;
 
@@ -529,20 +559,25 @@ export type SignalInstance<S extends Signal> = DeriveSignalInstance<S>;
 export type SignalMethod<S extends Signal> = (this: SignalInstance<S>, params: SignalEventShape) => Promise<unknown>;
 export type ActionMethod<A extends Action> = (this: ActionInstance<A>, params: { $: any }) => Promise<unknown>;
 
-export type PropStringDefinitionTypes = "text" | "html" | "markdown" | "json" | "xml" | "yaml" | "csv" | "tsv" | "css" | "sql" | "email" | "emailList" | "urlList" | "url";
+export type PropStringDefinitionTypes = "text" | "html" | "markdown" | "json" | "xml" | "yaml" | "csv" | "tsv" | "css" | "sql" | "email" | "emailList" | "urlList" | "url" | "base64";
 
-export type PropDefinitionTypes = "string" | "number" | "boolean" | "integer" | "object" | "array" | "file" | "image" | "video" | "audio" | `string(${PropStringDefinitionTypes})` | `$infer<${string}>` | "$infer" | "app" | `array<${string}>`;
+export type PropObjectDefinitionTypes = "json" | "base64"
+
+export type PropFileDefinitionTypes = "url" | "base64"
+
+export type PropDefinitionTypes = "string" | "number" | "boolean" | "integer" | "object" | "array" | "file" | "image" | "video" | "audio" | `object(${PropObjectDefinitionTypes})` | `file(${PropFileDefinitionTypes})` | `string(${PropStringDefinitionTypes})` | `$infer<${string}>` | "$infer" | "app" | `array<${string}>`;
+
+type StringPropDefinition = BasePropDefinition & {
+    type: PropDefinitionTypes;
+};
+
+type SchemaPropDefinition<TSchema extends z.ZodTypeAny = z.ZodTypeAny> =
+    BasePropDefinition & {
+        type: TSchema;
+    };
 
 // Prop definition type
-export type PropDefinition = {
-    label?: string;
-    description?: string;
-    type: PropDefinitionTypes;
-    options?: readonly { label?: string; value: unknown }[];
-    ui?: any;
-    default?: any;
-    visibleWhen?: any;
-};
+export type PropDefinition = StringPropDefinition | SchemaPropDefinition;
 
 // Helper to provide ThisType context for app definitions
 export function defineApp<const T extends object>(app: T & ThisType<DeriveAppInstance<T>>): T {
@@ -551,7 +586,7 @@ export function defineApp<const T extends object>(app: T & ThisType<DeriveAppIns
 
 // Helper to provide ThisType context for action definitions
 export function defineAction<const T extends
-    { props?: Record<string, PropDefinition> } &
+    { props?: Record<string, unknown> } &
     { type: "action" } &
     { name?: string } &
     { description?: string } &

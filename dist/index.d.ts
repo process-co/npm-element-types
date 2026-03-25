@@ -1,3 +1,4 @@
+import type { z } from 'zod';
 export type ElementString = {
     type: "string";
     label?: string;
@@ -267,6 +268,17 @@ type EmitFunction = {
 type StringToType<S extends string> = S extends "string" ? string : S extends "string(text)" ? string : S extends "string(html)" ? string : S extends "string(markdown)" ? string : S extends "string(json)" ? string : S extends "string(xml)" ? string : S extends "string(yaml)" ? string : S extends "string(csv)" ? string : S extends "string(tsv)" ? string : S extends "string(css)" ? string : S extends "string(sql)" ? string : S extends "string(email)" ? string : S extends "string(emailList)" ? string : S extends "string(urlList)" ? string : S extends "string(url)" ? string : S extends "number" ? number : S extends "boolean" ? boolean : S extends "null" ? null : S extends "undefined" ? undefined : S extends "object" ? object : S extends "any" ? any : S extends "unknown" ? unknown : S extends "never" ? never : S extends "void" ? void : never;
 type TrimSpaces<S extends string> = S extends ` ${infer R}` ? TrimSpaces<R> : S extends `${infer R} ` ? TrimSpaces<R> : S;
 type ParseUnion<S extends string> = S extends `${infer A}|${infer B}` ? StringToType<TrimSpaces<A>> | ParseUnion<B> : StringToType<TrimSpaces<S>>;
+type Expand<T> = T extends object ? {
+    [K in keyof T]: T[K];
+} : T;
+type InferZodOutput<T> = T extends {
+    _output: infer O;
+} ? O : never;
+type InferZodObjectShape<T> = T extends {
+    shape: infer Shape extends Record<string, z.ZodTypeAny>;
+} ? Expand<{
+    [K in keyof Shape]: InferZodOutput<Shape[K]>;
+}> : never;
 type InferType<T extends string> = T extends `$infer<${infer Inner}>` ? ParseUnion<Inner> : any;
 type PropOptionValue<T> = T extends {
     value: infer V;
@@ -274,6 +286,34 @@ type PropOptionValue<T> = T extends {
 type PropOptionsValue<T> = T extends {
     options: readonly (infer Option)[];
 } ? PropOptionValue<Option> : never;
+type BasePropDefinition = {
+    label?: string;
+    description?: string;
+    options?: readonly {
+        label?: string;
+        value: unknown;
+    }[];
+    ui?: any;
+    default?: any;
+    visibleWhen?: any;
+};
+type PropTypeFromTypeValue<U, T = unknown> = U extends z.ZodObject<any, any> ? InferZodObjectShape<U> : U extends z.ZodArray<infer Item> ? Expand<Array<InferZodOutput<Item>>> : U extends z.ZodTypeAny ? Expand<InferZodOutput<U>> : U extends "http_request" ? {
+    execute: () => Promise<{
+        headers?: Record<string, string>;
+        [key: string]: any;
+    }>;
+} : U extends "string" ? [PropOptionsValue<T>] extends [never] ? string : PropOptionsValue<T> : U extends "string(html)" ? string : U extends "string(markdown)" ? string : U extends "string(json)" ? string : U extends "string(xml)" ? string : U extends "string(yaml)" ? string : U extends "string(base64)" ? string : U extends "string(csv)" ? string : U extends "string(tsv)" ? string : U extends "string(css)" ? string : U extends "string(sql)" ? string : U extends "string(email)" ? string : U extends "string(emailList)" ? string[] : U extends "string(urlList)" ? string[] : U extends "string(url)" ? string : U extends `$infer<${string}>` ? InferType<U> : U extends "$infer" ? any : U extends "object" ? Record<string, unknown> : U extends `object(${PropObjectDefinitionTypes})` ? any : U extends `file(${PropFileDefinitionTypes})` ? IFile : U extends "number" ? number : U extends "boolean" ? boolean : U extends "integer" ? number : U extends "$.interface.http" ? {
+    respond: (response: HTTPResponse) => Promise<any> | void;
+    authenticate: (authType: HTTPAuthenticationType, options?: {
+        token?: string;
+    }) => Promise<any> | void;
+    flow: FlowFunctions;
+    end: () => void;
+    execute: () => Promise<{
+        headers?: Record<string, string>;
+        [key: string]: any;
+    }>;
+} : unknown;
 export type PropType<T> = T extends {
     props: Record<string, any>;
     methods: Record<string, any>;
@@ -290,71 +330,8 @@ export type PropType<T> = T extends {
 } ? {
     [K in keyof T["props"]]: PropType<T["props"][K]>;
 } : T extends {
-    type: "http_request";
-} ? {
-    execute: () => Promise<{
-        headers?: Record<string, string>;
-        [key: string]: any;
-    }>;
-} : T extends {
-    type: "string";
-    options: readonly unknown[];
-} ? [PropOptionsValue<T>] extends [never] ? string : PropOptionsValue<T> : T extends {
-    type: "string";
-} ? string : T extends {
-    type: "string(html)";
-} ? string : T extends {
-    type: "string(markdown)";
-} ? string : T extends {
-    type: "string(json)";
-} ? string : T extends {
-    type: "string(xml)";
-} ? string : T extends {
-    type: "string(yaml)";
-} ? string : T extends {
-    type: "string(csv)";
-} ? string : T extends {
-    type: "string(tsv)";
-} ? string : T extends {
-    type: "string(css)";
-} ? string : T extends {
-    type: "string(sql)";
-} ? string : T extends {
-    type: "string(email)";
-} ? string : T extends {
-    type: "string(emailList)";
-} ? string[] : T extends {
-    type: "string(urlList)";
-} ? string[] : T extends {
-    type: "string(url)";
-} ? string : T extends {
-    type: `$infer<${string}>`;
-} ? T extends {
-    type: infer S extends string;
-} ? InferType<S> : any : T extends {
-    type: "$infer";
-} ? any : T extends {
-    type: "object";
-} ? Record<string, unknown> : T extends {
-    type: "number";
-} ? number : T extends {
-    type: "boolean";
-} ? boolean : T extends {
-    type: "integer";
-} ? number : T extends {
-    type: "$.interface.http";
-} ? {
-    respond: (response: HTTPResponse) => Promise<any> | void;
-    authenticate: (authType: HTTPAuthenticationType, options?: {
-        token?: string;
-    }) => Promise<any> | void;
-    flow: FlowFunctions;
-    end: () => void;
-    execute: () => Promise<{
-        headers?: Record<string, string>;
-        [key: string]: any;
-    }>;
-} : unknown;
+    type: infer U;
+} ? PropTypeFromTypeValue<U, T> : unknown;
 export type ModuleShape = {
     type: string;
     props: Record<string, any>;
@@ -428,23 +405,20 @@ export type SignalMethod<S extends Signal> = (this: SignalInstance<S>, params: S
 export type ActionMethod<A extends Action> = (this: ActionInstance<A>, params: {
     $: any;
 }) => Promise<unknown>;
-export type PropStringDefinitionTypes = "text" | "html" | "markdown" | "json" | "xml" | "yaml" | "csv" | "tsv" | "css" | "sql" | "email" | "emailList" | "urlList" | "url";
-export type PropDefinitionTypes = "string" | "number" | "boolean" | "integer" | "object" | "array" | "file" | "image" | "video" | "audio" | `string(${PropStringDefinitionTypes})` | `$infer<${string}>` | "$infer" | "app" | `array<${string}>`;
-export type PropDefinition = {
-    label?: string;
-    description?: string;
+export type PropStringDefinitionTypes = "text" | "html" | "markdown" | "json" | "xml" | "yaml" | "csv" | "tsv" | "css" | "sql" | "email" | "emailList" | "urlList" | "url" | "base64";
+export type PropObjectDefinitionTypes = "json" | "base64";
+export type PropFileDefinitionTypes = "url" | "base64";
+export type PropDefinitionTypes = "string" | "number" | "boolean" | "integer" | "object" | "array" | "file" | "image" | "video" | "audio" | `object(${PropObjectDefinitionTypes})` | `file(${PropFileDefinitionTypes})` | `string(${PropStringDefinitionTypes})` | `$infer<${string}>` | "$infer" | "app" | `array<${string}>`;
+type StringPropDefinition = BasePropDefinition & {
     type: PropDefinitionTypes;
-    options?: readonly {
-        label?: string;
-        value: unknown;
-    }[];
-    ui?: any;
-    default?: any;
-    visibleWhen?: any;
 };
+type SchemaPropDefinition<TSchema extends z.ZodTypeAny = z.ZodTypeAny> = BasePropDefinition & {
+    type: TSchema;
+};
+export type PropDefinition = StringPropDefinition | SchemaPropDefinition;
 export declare function defineApp<const T extends object>(app: T & ThisType<DeriveAppInstance<T>>): T;
 export declare function defineAction<const T extends {
-    props?: Record<string, PropDefinition>;
+    props?: Record<string, unknown>;
 } & {
     type: "action";
 } & {
