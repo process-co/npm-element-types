@@ -56,33 +56,18 @@ export type ElementIcon = {
     type: "FontAwesome" | "MaterialIcons" | "ProcessIcons" | "RemoteImage" | "image";
     icon: string | ['far' | 'fas' | 'fab' | 'fal' | 'fad', string];
 } | string;
-export type ISlotInstanceDefinition = {
-    id?: string;
-    label?: string;
-    enabled?: boolean;
-    path?: string;
-    idPath?: string;
-    labelPath?: string;
-    enabledPath?: string;
-    labelPlaceholderTemplate?: string;
-    labelPlaceholderValue?: string;
-    branchValue?: string;
-    hideOnDisable?: boolean;
-    actionsPath?: string;
-    exportsPath?: string;
-};
-export type ISlotStaticInstanceDefinition = ISlotInstanceDefinition & {
-    type: "static";
-};
-export type ISlotDefinition = {
-    showBranchLabels?: boolean;
-    activeSlotId?: string;
-    activeSlotLabel?: string;
-    hideDisabled?: boolean;
-    hideOnDisable?: boolean;
-    exportSchemaPath?: string;
-    slots?: (ISlotInstanceDefinition | ISlotStaticInstanceDefinition)[];
-};
+import type { ISlotInstanceDefinition, ISlotStaticInstanceDefinition, ISlotDefinition } from './slot-definition';
+export type { ISlotInstanceDefinition, ISlotStaticInstanceDefinition, ISlotDefinition };
+export { builtinActionSlotsRegistry, type BuiltinActionSlotsRegistry, type BuiltinActionSlotsFern, type InferBuiltinActionSlots, } from './builtin-action-slots-registry';
+/** Full **`process-element` CLI** JSON shape + materializer for FERN-keyed props/slots (workflow-sdk / codegen). */
+export type { ProcessElementPropCliWire, ProcessElementActionCliWire, ProcessElementSignalCliWire, ProcessElementCliOutputWire, } from './process-element-cli-output';
+export type { MaterializedSlotBranch, MaterializedSlotLayout, MaterializedSlotDefinition, } from './materialize-slot-definition';
+export { materializeSlotDefinition } from './materialize-slot-definition';
+export type { MaterializedPropAuthoring, MaterializedActionAuthoringEntry, MaterializedSignalAuthoringEntry, MaterializedAuthoringCatalog, } from './materialize-authoring-from-cli-output';
+export { buildProcessActionFern, buildProcessSignalFern, materializeAuthoringCatalogFromCliOutput, } from './materialize-authoring-from-cli-output';
+/** Locked authoring catalog + helpers for FERN / slot / prop inference (not raw CLI JSON). */
+export { ELEMENT_AUTHORING_CONTRACT_VERSION, toAuthoringCatalogContract, authoringCatalogContractFromCliOutput, } from './authoring-contract';
+export type { AuthoringPropWireKind, AuthoringPropContract, SlotBranchAuthoringContract, SlotsAuthoringContract, ActionAuthoringContract, SignalAuthoringContract, ElementAuthoringCatalogContract, ChildStepsPropertyForBranch, ActionPropKeys, ActionContractByFern, FernAuthoringShardFileV1, } from './authoring-contract';
 export type ModuleDefinition = {
     type: string;
     app: string;
@@ -464,5 +449,4 @@ export type WithThis<T> = T extends {
         [K in keyof T['methods']]: T['methods'][K] extends (...args: infer A) => infer R ? (this: DeriveActionInstance<T>, ...args: A) => R : T['methods'][K];
     };
 } : T;
-export {};
 //# sourceMappingURL=index.d.ts.map
