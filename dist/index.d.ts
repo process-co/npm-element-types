@@ -68,6 +68,8 @@ export type ISlotInstanceDefinition = {
     labelPlaceholderValue?: string;
     branchValue?: string;
     hideOnDisable?: boolean;
+    actionsPath?: string;
+    exportsPath?: string;
 };
 export type ISlotStaticInstanceDefinition = ISlotInstanceDefinition & {
     type: "static";
@@ -78,6 +80,7 @@ export type ISlotDefinition = {
     activeSlotLabel?: string;
     hideDisabled?: boolean;
     hideOnDisable?: boolean;
+    exportSchemaPath?: string;
     slots?: (ISlotInstanceDefinition | ISlotStaticInstanceDefinition)[];
 };
 export type ModuleDefinition = {
