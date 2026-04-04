@@ -3,8 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.builtinActionSlotsRegistry = void 0;
 /**
  * Optional bootstrap registry (FERN → **`ISlotDefinition`**).
- * Prefer driving inference from **`materializeAuthoringCatalogFromCliOutput`** on the full
- * **`process-element` / `loadElementPointers`** JSON — that includes **props**, **returns**, and **slots**.
+ * Prefer driving inference from **`@process.co/compatibility`** **`authoring-spec`** **`materializeAuthoringCatalogFromCliOutput`**
+ * on the full **`process-element` / `loadElementPointers`** JSON — that includes **props**, **returns**, and **slots**.
  */
 exports.builtinActionSlotsRegistry = {
     'process-internal::action:switch': {

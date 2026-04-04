@@ -59,15 +59,11 @@ export type ElementIcon = {
 import type { ISlotInstanceDefinition, ISlotStaticInstanceDefinition, ISlotDefinition } from './slot-definition';
 export type { ISlotInstanceDefinition, ISlotStaticInstanceDefinition, ISlotDefinition };
 export { builtinActionSlotsRegistry, type BuiltinActionSlotsRegistry, type BuiltinActionSlotsFern, type InferBuiltinActionSlots, } from './builtin-action-slots-registry';
-/** Full **`process-element` CLI** JSON shape + materializer for FERN-keyed props/slots (workflow-sdk / codegen). */
+/** Full **`process-element` CLI** JSON shape (types only; materialize in **`@process.co/compatibility`** **`authoring-spec`**). */
 export type { ProcessElementPropCliWire, ProcessElementActionCliWire, ProcessElementSignalCliWire, ProcessElementCliOutputWire, } from './process-element-cli-output';
-export type { MaterializedSlotBranch, MaterializedSlotLayout, MaterializedSlotDefinition, } from './materialize-slot-definition';
-export { materializeSlotDefinition } from './materialize-slot-definition';
-export type { MaterializedPropAuthoring, MaterializedActionAuthoringEntry, MaterializedSignalAuthoringEntry, MaterializedAuthoringCatalog, } from './materialize-authoring-from-cli-output';
-export { buildProcessActionFern, buildProcessSignalFern, materializeAuthoringCatalogFromCliOutput, } from './materialize-authoring-from-cli-output';
-/** Locked authoring catalog + helpers for FERN / slot / prop inference (not raw CLI JSON). */
-export { ELEMENT_AUTHORING_CONTRACT_VERSION, toAuthoringCatalogContract, authoringCatalogContractFromCliOutput, } from './authoring-contract';
-export type { AuthoringPropWireKind, AuthoringPropContract, SlotBranchAuthoringContract, SlotsAuthoringContract, ActionAuthoringContract, SignalAuthoringContract, ElementAuthoringCatalogContract, ChildStepsPropertyForBranch, ActionPropKeys, ActionContractByFern, FernAuthoringShardFileV1, } from './authoring-contract';
+/** Locked authoring catalog **types** + version (runtime materialize: **`@process.co/compatibility`** **`authoring-spec`**). */
+export { ELEMENT_AUTHORING_CONTRACT_VERSION } from './authoring-contract-types';
+export type { AuthoringPropWireKind, AuthoringPropContract, SlotBranchAuthoringContract, SlotsAuthoringContract, ActionAuthoringContract, SignalAuthoringContract, ElementAuthoringCatalogContract, ChildStepsPropertyForBranch, ActionPropKeys, ActionContractByFern, FernAuthoringShardFileV1, } from './authoring-contract-types';
 export type ModuleDefinition = {
     type: string;
     app: string;

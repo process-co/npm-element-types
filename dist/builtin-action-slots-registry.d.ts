@@ -1,7 +1,7 @@
 /**
  * Optional bootstrap registry (FERN → **`ISlotDefinition`**).
- * Prefer driving inference from **`materializeAuthoringCatalogFromCliOutput`** on the full
- * **`process-element` / `loadElementPointers`** JSON — that includes **props**, **returns**, and **slots**.
+ * Prefer driving inference from **`@process.co/compatibility`** **`authoring-spec`** **`materializeAuthoringCatalogFromCliOutput`**
+ * on the full **`process-element` / `loadElementPointers`** JSON — that includes **props**, **returns**, and **slots**.
  */
 export declare const builtinActionSlotsRegistry: {
     readonly 'process-internal::action:switch': {
