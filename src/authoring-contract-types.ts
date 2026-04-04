@@ -112,7 +112,7 @@ export type ActionContractByFern<
 /**
  * **Early** artifact: one file per element / integration build, written by **`@process.co/compatibility`**.
  * **Late** step merges many shards (any mix of **`--dir` / `--shard` / `--cli` / `--bundle`**) into **one** file:
- * **`workflow-sdk`** **`fern-authoring-registry.generated.ts`** (merged inference types; contract JSON stays in shards / bundles).
+ * **`workflow-sdk`** generated module under **`src/generated/`** (e.g. **`authoring-registry.merged.ts`**) — merged inference types; contract JSON stays in shards / bundles.
  * **FERN keys must be unique across the merged set**; duplicates are a merge conflict (tooling should pick one winner).
  * Payload is **contract-only** (**`wireKind`**, slots metadata) — not full persisted editor **`data.data`** shapes.
  */
