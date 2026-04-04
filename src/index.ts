@@ -55,6 +55,11 @@ export type {
     FernAuthoringShardFileV1,
 } from './authoring-contract-types';
 
+export {
+  PLATFORM_BOUND_LOADER_TYPE_PREFIXES,
+  isPlatformBoundLoaderType,
+} from './platform-loader-type';
+
 // Base types for module definitions
 export type ModuleDefinition = {
     type: string;

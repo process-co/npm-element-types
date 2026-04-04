@@ -27,6 +27,12 @@ export interface AuthoringPropContract {
   readonly label: string;
   readonly wireKind: AuthoringPropWireKind;
   readonly required: boolean;
+  /**
+   * When true, the prop is **not** part of the user instance payload (e.g. loader **`type`** is
+   * **`$.interface.http`** / **`$.service.db`** — runtime-injected). Merged **`GeneratedAuthoringStepPropsByFern`**
+   * emission skips these keys.
+   */
+  readonly excludeFromAuthoringInstanceShape?: boolean;
 }
 
 /**

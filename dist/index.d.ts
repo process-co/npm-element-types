@@ -64,6 +64,7 @@ export type { ProcessElementPropCliWire, ProcessElementActionCliWire, ProcessEle
 /** Locked authoring catalog **types** + version (runtime materialize: **`@process.co/compatibility`** **`authoring-spec`**). */
 export { ELEMENT_AUTHORING_CONTRACT_VERSION } from './authoring-contract-types';
 export type { AuthoringPropWireKind, AuthoringPropContract, SlotBranchAuthoringContract, SlotsAuthoringContract, ActionAuthoringContract, SignalAuthoringContract, ElementAuthoringCatalogContract, ChildStepsPropertyForBranch, ActionPropKeys, ActionContractByFern, FernAuthoringShardFileV1, } from './authoring-contract-types';
+export { PLATFORM_BOUND_LOADER_TYPE_PREFIXES, isPlatformBoundLoaderType, } from './platform-loader-type';
 export type ModuleDefinition = {
     type: string;
     app: string;
