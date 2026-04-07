@@ -6,7 +6,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ELEMENT_AUTHORING_CONTRACT_VERSION = void 0;
 /**
- * Bump when this contract changes — regenerate workflow-sdk / codegen consumers.
+ * Bump when this contract changes — regenerate **`@process.co/elements`** **`generate:authoring`** and other codegen consumers.
  * Raw CLI JSON does not carry this; the **contract** is the stable TS surface.
  */
 exports.ELEMENT_AUTHORING_CONTRACT_VERSION = 1;

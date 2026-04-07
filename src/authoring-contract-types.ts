@@ -4,7 +4,7 @@
  */
 
 /**
- * Bump when this contract changes — regenerate workflow-sdk / codegen consumers.
+ * Bump when this contract changes — regenerate **`@process.co/elements`** **`generate:authoring`** and other codegen consumers.
  * Raw CLI JSON does not carry this; the **contract** is the stable TS surface.
  */
 export const ELEMENT_AUTHORING_CONTRACT_VERSION = 1 as const;
@@ -118,7 +118,7 @@ export type ActionContractByFern<
 /**
  * **Early** artifact: one file per element / integration build, written by **`@process.co/compatibility`**.
  * **Late** step merges many shards (any mix of **`--dir` / `--shard` / `--cli` / `--bundle`**) into **one** file:
- * **`workflow-sdk`** generated module under **`src/generated/`** (e.g. **`authoring-registry.merged.ts`**) — merged inference types; contract JSON stays in shards / bundles.
+ * **`@process.co/elements`** **`src/generated/authoring-registry.merged.ts`** — merged inference types; contract JSON stays in shards / bundles.
  * **FERN keys must be unique across the merged set**; duplicates are a merge conflict (tooling should pick one winner).
  * Payload is **contract-only** (**`wireKind`**, slots metadata) — not full persisted editor **`data.data`** shapes.
  */
