@@ -96,6 +96,42 @@ export type SignalEventShape = {
         [key: string]: JSONValue;
     } | string | Buffer | NodeJS.ReadableStream;
 };
+/**
+ * Persisted subset of `$.interface.schema` (HTTP triggers, etc.) used at execution.
+ * Design-time: `exportSchema` / `exportSchemaZodex` support hints and portable TS-shaped metadata.
+ * Runtime Zod enforcement uses `compiledValidatorKey` + host `$.enforceSchema`.
+ */
+export type HttpInterfaceSchemaWire = {
+    validation?: boolean;
+    exportSchema?: Record<string, JSONValue>;
+    exportSchemaZodex?: Record<string, JSONValue>;
+    exportSchemaSource?: string;
+    exportSchemaKey?: string | null;
+    /** S3 object key (element-registry bucket) for compiled ESM validator `.mjs`. */
+    compiledValidatorKey?: string | null;
+};
+/** Host-backed RPC surface passed as `params.$` to signal `run` (parallel to action `ActionRunOptions.$`). */
+export type SignalHostServices = {
+    export?: (category: string, message: string) => void | Promise<void>;
+    $transitionToSlot?: (slots: Array<SlotTransitionDefinition>) => void | Promise<void>;
+    enforceSchema?: <T = unknown>(inputSchema: HttpInterfaceSchemaWire | undefined, value: unknown) => Promise<T>;
+};
+export type SignalRunOptions = {
+    $: SignalHostServices;
+    event: SignalEventShape;
+};
+export type ValidateEmitPayloadResult<T> = {
+    ok: true;
+    value: T;
+} | {
+    ok: false;
+    message: string;
+};
+/**
+ * When `inputSchema.validation` is true, awaits `host.enforceSchema(inputSchema, value)`.
+ * Otherwise returns `value` unchanged.
+ */
+export declare function validateEmitPayload<T>(host: Pick<SignalHostServices, 'enforceSchema'>, inputSchema: HttpInterfaceSchemaWire | undefined, value: unknown): Promise<ValidateEmitPayloadResult<T>>;
 export interface FileMetadata {
     size: number;
     contentType?: string;
@@ -380,13 +416,11 @@ export interface Action<P extends Record<string, any> = Record<string, any>> ext
 export interface Signal<P extends Record<string, any> = Record<string, any>> extends ModuleDefinition {
     type: "signal";
     props: P;
-    run: (this: DeriveSignalInstance<Signal<P>>, params: {
-        event: SignalEventShape;
-    }) => Promise<unknown>;
+    run: (this: DeriveSignalInstance<Signal<P>>, params: SignalRunOptions) => Promise<unknown>;
 }
 export type ActionInstance<A extends Action> = DeriveActionInstance<A>;
 export type SignalInstance<S extends Signal> = DeriveSignalInstance<S>;
-export type SignalMethod<S extends Signal> = (this: SignalInstance<S>, params: SignalEventShape) => Promise<unknown>;
+export type SignalMethod<S extends Signal> = (this: SignalInstance<S>, params: SignalRunOptions) => Promise<unknown>;
 export type ActionMethod<A extends Action> = (this: ActionInstance<A>, params: {
     $: any;
 }) => Promise<unknown>;
@@ -424,11 +458,12 @@ export declare function defineAction<const T extends {
     initValue?: any;
 }>(action: T & ThisType<DeriveActionInstance<T>>): T;
 export declare function defineSignal<const T extends {
-    run: (event: SignalEventShape) => Promise<void>;
+    run: (params: SignalRunOptions) => Promise<unknown>;
 }>(signal: T & ThisType<DeriveSignalInstance<T>>): T;
 export type RunReturn<T> = T extends {
     run: (...args: any[]) => infer R;
 } ? Awaited<R> : never;
+export { ZOD_CONTAINER_EXPORT_TO_JSON_SCHEMA_PARAMS, zodObjectToContainerExportJsonSchema, } from './zod-container-export-json-schema';
 export type OnChangeOpts = {
     layoutShift?: boolean;
 };
