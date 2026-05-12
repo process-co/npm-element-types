@@ -98,23 +98,48 @@ export type SignalEventShape = {
 };
 /**
  * Persisted subset of `$.interface.schema` (HTTP triggers, etc.) used at execution.
- * Design-time: `exportSchema` / `exportSchemaZodex` support hints and portable TS-shaped metadata.
- * Runtime Zod enforcement uses `compiledValidatorKey` + host `$.enforceSchema`.
+ * Design-time fields (`exportSchema`, `exportSchemaZodex`, etc.) are hints for editors and tooling.
+ * When {@link HttpInterfaceSchemaWire.validation} is true, the runtime does **not** validate against
+ * those JSON blobs alone: it loads the ESM at {@link HttpInterfaceSchemaWire.compiledValidatorKey}
+ * (default export = Zod schema) and runs full `safeParse` on the payload via the runner-bound
+ * {@link SignalHostServices.enforceSchema} RPC (see {@link setSignalEmitValidationHost}).
  */
 export type HttpInterfaceSchemaWire = {
+    /**
+     * When true, `enforceSchema` runs the **compiled** default-export Zod schema for this interface
+     * (full parse/transform/refine), not a lightweight check of `exportSchema` alone.
+     */
     validation?: boolean;
     exportSchema?: Record<string, JSONValue>;
     exportSchemaZodex?: Record<string, JSONValue>;
     exportSchemaSource?: string;
     exportSchemaKey?: string | null;
-    /** S3 object key (element-registry bucket) for compiled ESM validator `.mjs`. */
+    /** S3 object key (element-registry bucket) for compiled ESM whose default export is the Zod schema used at runtime. */
     compiledValidatorKey?: string | null;
 };
 /** Host-backed RPC surface passed as `params.$` to signal `run` (parallel to action `ActionRunOptions.$`). */
 export type SignalHostServices = {
-    export?: (category: string, message: string) => void | Promise<void>;
-    $transitionToSlot?: (slots: Array<SlotTransitionDefinition>) => void | Promise<void>;
-    enforceSchema?: <T = unknown>(inputSchema: HttpInterfaceSchemaWire | undefined, value: unknown) => Promise<T>;
+    export: (category: string, message: string) => void | Promise<void>;
+    $transitionToSlot: (slots: Array<SlotTransitionDefinition>) => void | Promise<void>;
+    /**
+     * When `inputSchema.validation` is set, runs the published **full Zod** validator for that
+     * interface (`compiledValidatorKey`); otherwise may no-op. Implemented by the Process API
+     * (validator worker + `safeParse`), not by element code.
+     */
+    enforceSchema: <T>(inputSchema: HttpInterfaceSchemaWire | undefined, value: unknown) => Promise<EnforceSchemaResult<T>>;
+    /**
+     * Wire for the primary `$.interface.schema` property (same persisted object the publish
+     * pipeline attaches `compiledValidatorKey` to). Use with {@link SignalHostServices.enforceSchema},
+     * e.g. `await $.enforceSchema($.interfaceEmitSchema, toEmit)`.
+     */
+    interfaceEmitSchema?: HttpInterfaceSchemaWire;
+};
+export type EnforceSchemaResult<T extends unknown = unknown> = {
+    ok: true;
+    value: T;
+} | {
+    ok: false;
+    message: string;
 };
 export type SignalRunOptions = {
     $: SignalHostServices;
@@ -128,10 +153,26 @@ export type ValidateEmitPayloadResult<T> = {
     message: string;
 };
 /**
- * When `inputSchema.validation` is true, awaits `host.enforceSchema(inputSchema, value)`.
- * Otherwise returns `value` unchanged.
+ * Host shape accepted from the runner RPC bridge (`$.enforceSchema` may be typed as
+ * returning `Promise<unknown>` while {@link SignalHostServices} uses a generic `T`).
  */
-export declare function validateEmitPayload<T>(host: Pick<SignalHostServices, 'enforceSchema'>, inputSchema: HttpInterfaceSchemaWire | undefined, value: unknown): Promise<ValidateEmitPayloadResult<T>>;
+export type SignalEmitValidationHostBinding = Pick<SignalHostServices, 'enforceSchema'> | {
+    enforceSchema?: (inputSchema: HttpInterfaceSchemaWire | undefined, value: unknown) => Promise<unknown>;
+};
+/**
+ * Binds the trusted signal host used by {@link validateEmitPayload} for the current
+ * invocation. The runner sets this from the RPC/proxy host **outside** element code and
+ * clears it when the invocation completes. Uses `globalThis` so a bundled copy of
+ * `validateEmitPayload` inside an element module still sees the same binding as the runner.
+ */
+export declare function setSignalEmitValidationHost(host: SignalEmitValidationHostBinding | undefined): void;
+/**
+ * When validation is required (explicit `validation: true`, or a non-empty `compiledValidatorKey`
+ * with `validation` not `false`), awaits the bound host's `enforceSchema` so the API runs the
+ * **compiled Zod** validator. Otherwise returns `value` unchanged.
+ * (see {@link setSignalEmitValidationHost}).
+ */
+export declare function validateEmitPayload<T>(inputSchema: HttpInterfaceSchemaWire | undefined, value: unknown): Promise<ValidateEmitPayloadResult<T>>;
 export interface FileMetadata {
     size: number;
     contentType?: string;
@@ -323,7 +364,7 @@ type PropTypeFromTypeValue<U, T = unknown> = U extends z.ZodObject<any, any> ? I
         headers?: Record<string, string>;
         [key: string]: any;
     }>;
-} : U extends "string" ? [PropOptionsValue<T>] extends [never] ? string : PropOptionsValue<T> : U extends "string(html)" ? string : U extends "string(markdown)" ? string : U extends "string(json)" ? string : U extends "string(xml)" ? string : U extends "string(yaml)" ? string : U extends "string(base64)" ? string : U extends "string(csv)" ? string : U extends "string(tsv)" ? string : U extends "string(css)" ? string : U extends "string(sql)" ? string : U extends "string(email)" ? string : U extends "string(emailList)" ? string[] : U extends "string(urlList)" ? string[] : U extends "string(url)" ? string : U extends `$infer<${string}>` ? InferType<U> : U extends "$infer" ? any : U extends "object" ? Record<string, unknown> : U extends `object(${PropObjectDefinitionTypes})` ? any : U extends `file(${PropFileDefinitionTypes})` ? IFile : U extends "number" ? number : U extends "boolean" ? boolean : U extends "integer" ? number : U extends "$.interface.http" ? {
+} : U extends "string" ? [PropOptionsValue<T>] extends [never] ? string : PropOptionsValue<T> : U extends "string(html)" ? string : U extends "string(markdown)" ? string : U extends "string(json)" ? string : U extends "string(xml)" ? string : U extends "string(yaml)" ? string : U extends "string(base64)" ? string : U extends "string(csv)" ? string : U extends "string(tsv)" ? string : U extends "string(css)" ? string : U extends "string(sql)" ? string : U extends "string(email)" ? string : U extends "string(emailList)" ? string[] : U extends "string(urlList)" ? string[] : U extends "string(url)" ? string : U extends `$infer<${string}>` ? InferType<U> : U extends "$infer" ? any : U extends "object" ? Record<string, unknown> : U extends `object(${PropObjectDefinitionTypes})` ? any : U extends `file(${PropFileDefinitionTypes})` ? IFile : U extends "number" ? number : U extends "boolean" ? boolean : U extends "integer" ? number : U extends "$.interface.schema" ? HttpInterfaceSchemaWire : U extends "$.interface.http" ? {
     respond: (response: HTTPResponse) => Promise<any> | void;
     authenticate: (authType: HTTPAuthenticationType, options?: {
         token?: string;

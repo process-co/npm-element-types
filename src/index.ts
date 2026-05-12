@@ -56,8 +56,8 @@ export type {
 } from './authoring-contract-types';
 
 export {
-  PLATFORM_BOUND_LOADER_TYPE_PREFIXES,
-  isPlatformBoundLoaderType,
+    PLATFORM_BOUND_LOADER_TYPE_PREFIXES,
+    isPlatformBoundLoaderType,
 } from './platform-loader-type';
 
 // Base types for module definitions
@@ -106,30 +106,58 @@ export type SignalEventShape = {
 
 /**
  * Persisted subset of `$.interface.schema` (HTTP triggers, etc.) used at execution.
- * Design-time: `exportSchema` / `exportSchemaZodex` support hints and portable TS-shaped metadata.
- * Runtime Zod enforcement uses `compiledValidatorKey` + host `$.enforceSchema`.
+ * Design-time fields (`exportSchema`, `exportSchemaZodex`, etc.) are hints for editors and tooling.
+ * When {@link HttpInterfaceSchemaWire.validation} is true, the runtime does **not** validate against
+ * those JSON blobs alone: it loads the ESM at {@link HttpInterfaceSchemaWire.compiledValidatorKey}
+ * (default export = Zod schema) and runs full `safeParse` on the payload via the runner-bound
+ * {@link SignalHostServices.enforceSchema} RPC (see {@link setSignalEmitValidationHost}).
  */
 export type HttpInterfaceSchemaWire = {
+    /**
+     * When true, `enforceSchema` runs the **compiled** default-export Zod schema for this interface
+     * (full parse/transform/refine), not a lightweight check of `exportSchema` alone.
+     */
     validation?: boolean;
     exportSchema?: Record<string, JSONValue>;
     exportSchemaZodex?: Record<string, JSONValue>;
     exportSchemaSource?: string;
     exportSchemaKey?: string | null;
-    /** S3 object key (element-registry bucket) for compiled ESM validator `.mjs`. */
+    /** S3 object key (element-registry bucket) for compiled ESM whose default export is the Zod schema used at runtime. */
     compiledValidatorKey?: string | null;
 };
 
 /** Host-backed RPC surface passed as `params.$` to signal `run` (parallel to action `ActionRunOptions.$`). */
 export type SignalHostServices = {
-    export?: (category: string, message: string) => void | Promise<void>;
-    $transitionToSlot?: (slots: Array<SlotTransitionDefinition>) => void | Promise<void>;
-    enforceSchema?: <T = unknown>(
+    export: (category: string, message: string) => void | Promise<void>;
+    $transitionToSlot: (slots: Array<SlotTransitionDefinition>) => void | Promise<void>;
+
+    /**
+     * When `inputSchema.validation` is set, runs the published **full Zod** validator for that
+     * interface (`compiledValidatorKey`); otherwise may no-op. Implemented by the Process API
+     * (validator worker + `safeParse`), not by element code.
+     */
+    enforceSchema: <T>(
         inputSchema: HttpInterfaceSchemaWire | undefined,
         value: unknown,
-    ) => Promise<T>;
+    ) => Promise<EnforceSchemaResult<T>>;
+
+    /**
+     * Wire for the primary `$.interface.schema` property (same persisted object the publish
+     * pipeline attaches `compiledValidatorKey` to). Use with {@link SignalHostServices.enforceSchema},
+     * e.g. `await $.enforceSchema($.interfaceEmitSchema, toEmit)`.
+     */
+    interfaceEmitSchema?: HttpInterfaceSchemaWire;
 };
 
-export type SignalRunOptions = { 
+export type EnforceSchemaResult<T extends unknown = unknown> = {
+    ok: true;
+    value: T;
+} | {
+    ok: false;
+    message: string; 
+};
+
+export type SignalRunOptions = {
     $: SignalHostServices;
     event: SignalEventShape;
 };
@@ -138,29 +166,84 @@ export type ValidateEmitPayloadResult<T> =
     | { ok: true; value: T }
     | { ok: false; message: string };
 
+/** Shared across bundled copies of this package in the same JS realm (worker isolate). */
+const SIGNAL_EMIT_VALIDATION_HOST = Symbol.for('process.co.signalEmitValidationHost');
+
 /**
- * When `inputSchema.validation` is true, awaits `host.enforceSchema(inputSchema, value)`.
- * Otherwise returns `value` unchanged.
+ * Host shape accepted from the runner RPC bridge (`$.enforceSchema` may be typed as
+ * returning `Promise<unknown>` while {@link SignalHostServices} uses a generic `T`).
+ */
+export type SignalEmitValidationHostBinding =
+    | Pick<SignalHostServices, 'enforceSchema'>
+    | {
+          enforceSchema?: (
+              inputSchema: HttpInterfaceSchemaWire | undefined,
+              value: unknown,
+          ) => Promise<unknown>;
+      };
+
+function getSignalEmitValidationHostBinding(): Pick<SignalHostServices, 'enforceSchema'> | undefined {
+    return (globalThis as Record<symbol, Pick<SignalHostServices, 'enforceSchema'> | undefined>)[
+        SIGNAL_EMIT_VALIDATION_HOST
+    ];
+}
+
+/**
+ * Binds the trusted signal host used by {@link validateEmitPayload} for the current
+ * invocation. The runner sets this from the RPC/proxy host **outside** element code and
+ * clears it when the invocation completes. Uses `globalThis` so a bundled copy of
+ * `validateEmitPayload` inside an element module still sees the same binding as the runner.
+ */
+export function setSignalEmitValidationHost(
+    host: SignalEmitValidationHostBinding | undefined,
+): void {
+    const g = globalThis as Record<symbol, Pick<SignalHostServices, 'enforceSchema'> | undefined>;
+    if (host === undefined) {
+        delete g[SIGNAL_EMIT_VALIDATION_HOST];
+    } else {
+        g[SIGNAL_EMIT_VALIDATION_HOST] = host as Pick<SignalHostServices, 'enforceSchema'>;
+    }
+}
+
+/**
+ * When validation is required (explicit `validation: true`, or a non-empty `compiledValidatorKey`
+ * with `validation` not `false`), awaits the bound host's `enforceSchema` so the API runs the
+ * **compiled Zod** validator. Otherwise returns `value` unchanged.
+ * (see {@link setSignalEmitValidationHost}).
  */
 export async function validateEmitPayload<T>(
-    host: Pick<SignalHostServices, 'enforceSchema'>,
     inputSchema: HttpInterfaceSchemaWire | undefined,
     value: unknown,
 ): Promise<ValidateEmitPayloadResult<T>> {
-    if (!inputSchema?.validation) {
+    const hasCompiled =
+        inputSchema &&
+        typeof inputSchema.compiledValidatorKey === 'string' &&
+        inputSchema.compiledValidatorKey.length > 0;
+    if (inputSchema?.validation === false) {
         return { ok: true, value: value as T };
     }
-    const enforce = host.enforceSchema;
+    if (!hasCompiled && inputSchema?.validation !== true) {
+        return { ok: true, value: value as T };
+    }
+    const bound = getSignalEmitValidationHostBinding();
+    const enforce = bound?.enforceSchema;
     if (typeof enforce !== 'function') {
         return {
             ok: false,
             message:
-                'Input validation is enabled but the runtime did not provide enforceSchema.',
+                'Input validation is enabled for this HTTP trigger, but the runtime did not provide enforceSchema. Use `run`/`this.$` from the Process worker (RPC host), and pass the wire from `$.interfaceEmitSchema` as the first argument to `$.enforceSchema`.',
         };
     }
     try {
         const out = await enforce<T>(inputSchema, value);
-        return { ok: true, value: out };
+        if (out && typeof out === 'object' && 'ok' in out) {
+            const r = out as EnforceSchemaResult<T>;
+            if (r.ok) {
+                return { ok: true, value: r.value };
+            }
+            return { ok: false, message: r.message };
+        }
+        return { ok: true, value: out as T };
     } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
         return { ok: false, message };
@@ -482,6 +565,7 @@ type PropTypeFromTypeValue<U, T = unknown> =
     : U extends "number" ? number
     : U extends "boolean" ? boolean
     : U extends "integer" ? number
+    : U extends "$.interface.schema" ? HttpInterfaceSchemaWire
     : U extends "$.interface.http" ? {
         respond: (response: HTTPResponse) => Promise<any> | void;
         authenticate: (authType: HTTPAuthenticationType, options?: { token?: string }) => Promise<any> | void;
