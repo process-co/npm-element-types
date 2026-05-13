@@ -124,6 +124,21 @@ export type HttpInterfaceSchemaWire = {
     exportSchemaKey?: string | null;
     /** S3 object key (element-registry bucket) for compiled ESM whose default export is the Zod schema used at runtime. */
     compiledValidatorKey?: string | null;
+    /**
+     * Client-issued token stored with the interface schema blob; included in validator artifact paths
+     * so successive saves and draft/live rows do not share one S3 prefix unless intended.
+     */
+    schemaBuildKey?: string;
+    /**
+     * When set, the API may coerce **string** leaf values to number / boolean / bigint / Date **only
+     * where the compiled Zod schema expects those types** (schema-guided), before `safeParse`.
+     *
+     * - `'auto'` (default when omitted): enable for form-like `Content-Type` (`application/x-www-form-urlencoded`,
+     *   `multipart/form-data`). Typical JSON bodies skip coercion so numeric strings stay strings.
+     * - `true`: always run schema-guided coercion.
+     * - `false`: never coerce (strict).
+     */
+    coerceLeafPrimitives?: boolean | 'auto';
 };
 
 /** Host-backed RPC surface passed as `params.$` to signal `run` (parallel to action `ActionRunOptions.$`). */
