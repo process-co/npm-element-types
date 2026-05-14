@@ -164,13 +164,33 @@ export type SignalHostServices = {
     interfaceEmitSchema?: HttpInterfaceSchemaWire;
 };
 
-export type EnforceSchemaResult<T extends unknown = unknown> = {
-    ok: true;
-    value: T;
-} | {
-    ok: false;
-    message: string; 
+/** One row from a failed Zod `safeParse` (host / `validateEmitPayload`). */
+export type SchemaValidationIssue = {
+    path: string;
+    message: string;
+    code: string;
 };
+
+export type EnforceSchemaResult<T extends unknown = unknown> =
+    | {
+          ok: true;
+          value: T;
+      }
+    | {
+          ok: false;
+          message: string;
+          issues?: SchemaValidationIssue[];
+      };
+
+/**
+ * Marker on successful `schema.enforce` RPC results from the Process API.
+ * Zod-validated HTTP bodies may legally include their own `ok` / `value` fields; this
+ * discriminant prevents {@link validateEmitPayload} (and worker RPC unwrap) from
+ * confusing user payloads with the host envelope.
+ *
+ * Keep in sync with `apps/api` `DynamicRunnerService` `schema.enforce` and `runner-host` unwrap.
+ */
+export const PROCESS_CO_ENFORCE_SCHEMA_HOST_PAYLOAD_MARKER = 'enforceSchema' as const;
 
 export type SignalRunOptions = {
     $: SignalHostServices;
@@ -179,7 +199,7 @@ export type SignalRunOptions = {
 
 export type ValidateEmitPayloadResult<T> =
     | { ok: true; value: T }
-    | { ok: false; message: string };
+    | { ok: false; message: string; issues?: SchemaValidationIssue[] };
 
 /** Shared across bundled copies of this package in the same JS realm (worker isolate). */
 const SIGNAL_EMIT_VALIDATION_HOST = Symbol.for('process.co.signalEmitValidationHost');
@@ -220,10 +240,29 @@ export function setSignalEmitValidationHost(
     }
 }
 
+function validationIssuesFromUnknown(e: unknown): SchemaValidationIssue[] | undefined {
+    if (!e || typeof e !== 'object') return undefined;
+    const issues = (e as { issues?: unknown }).issues;
+    if (!Array.isArray(issues) || issues.length === 0) return undefined;
+    const out: SchemaValidationIssue[] = [];
+    for (const row of issues) {
+        if (!row || typeof row !== 'object') continue;
+        const o = row as Record<string, unknown>;
+        out.push({
+            path: typeof o.path === 'string' ? o.path : '(root)',
+            message: typeof o.message === 'string' ? o.message : String(o.message ?? ''),
+            code: typeof o.code === 'string' ? o.code : 'custom',
+        });
+    }
+    return out.length > 0 ? out : undefined;
+}
+
 /**
  * When validation is required (explicit `validation: true`, or a non-empty `compiledValidatorKey`
  * with `validation` not `false`), awaits the bound host's `enforceSchema` so the API runs the
  * **compiled Zod** validator. Otherwise returns `value` unchanged.
+ * On failure, `issues` lists Zod paths/messages when the host provides them (forward into your
+ * `http.respond` JSON body alongside any `requestStatus` you use).
  * (see {@link setSignalEmitValidationHost}).
  */
 export async function validateEmitPayload<T>(
@@ -252,16 +291,22 @@ export async function validateEmitPayload<T>(
     try {
         const out = await enforce<T>(inputSchema, value);
         if (out && typeof out === 'object' && 'ok' in out) {
-            const r = out as EnforceSchemaResult<T>;
-            if (r.ok) {
-                return { ok: true, value: r.value };
+            const r = out as Partial<EnforceSchemaResult<T>> & Record<string, unknown>;
+            if (r.ok === false && typeof r.message === 'string') {
+                return r.issues?.length
+                    ? { ok: false, message: r.message, issues: r.issues as SchemaValidationIssue[] }
+                    : { ok: false, message: r.message };
             }
-            return { ok: false, message: r.message };
+            if (r.ok === true && 'value' in r) {
+                return { ok: true, value: r.value as T };
+            }
         }
+        // Legacy host binding returned bare validated payload (not `EnforceSchemaResult`).
         return { ok: true, value: out as T };
     } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
-        return { ok: false, message };
+        const issues = validationIssuesFromUnknown(e);
+        return issues?.length ? { ok: false, message, issues } : { ok: false, message };
     }
 }
 

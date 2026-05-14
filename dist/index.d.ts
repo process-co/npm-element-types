@@ -149,13 +149,29 @@ export type SignalHostServices = {
      */
     interfaceEmitSchema?: HttpInterfaceSchemaWire;
 };
+/** One row from a failed Zod `safeParse` (host / `validateEmitPayload`). */
+export type SchemaValidationIssue = {
+    path: string;
+    message: string;
+    code: string;
+};
 export type EnforceSchemaResult<T extends unknown = unknown> = {
     ok: true;
     value: T;
 } | {
     ok: false;
     message: string;
+    issues?: SchemaValidationIssue[];
 };
+/**
+ * Marker on successful `schema.enforce` RPC results from the Process API.
+ * Zod-validated HTTP bodies may legally include their own `ok` / `value` fields; this
+ * discriminant prevents {@link validateEmitPayload} (and worker RPC unwrap) from
+ * confusing user payloads with the host envelope.
+ *
+ * Keep in sync with `apps/api` `DynamicRunnerService` `schema.enforce` and `runner-host` unwrap.
+ */
+export declare const PROCESS_CO_ENFORCE_SCHEMA_HOST_PAYLOAD_MARKER: "enforceSchema";
 export type SignalRunOptions = {
     $: SignalHostServices;
     event: SignalEventShape;
@@ -166,6 +182,7 @@ export type ValidateEmitPayloadResult<T> = {
 } | {
     ok: false;
     message: string;
+    issues?: SchemaValidationIssue[];
 };
 /**
  * Host shape accepted from the runner RPC bridge (`$.enforceSchema` may be typed as
@@ -185,6 +202,8 @@ export declare function setSignalEmitValidationHost(host: SignalEmitValidationHo
  * When validation is required (explicit `validation: true`, or a non-empty `compiledValidatorKey`
  * with `validation` not `false`), awaits the bound host's `enforceSchema` so the API runs the
  * **compiled Zod** validator. Otherwise returns `value` unchanged.
+ * On failure, `issues` lists Zod paths/messages when the host provides them (forward into your
+ * `http.respond` JSON body alongside any `requestStatus` you use).
  * (see {@link setSignalEmitValidationHost}).
  */
 export declare function validateEmitPayload<T>(inputSchema: HttpInterfaceSchemaWire | undefined, value: unknown): Promise<ValidateEmitPayloadResult<T>>;
