@@ -173,14 +173,14 @@ export type SchemaValidationIssue = {
 
 export type EnforceSchemaResult<T extends unknown = unknown> =
     | {
-          ok: true;
-          value: T;
-      }
+        ok: true;
+        value: T;
+    }
     | {
-          ok: false;
-          message: string;
-          issues?: SchemaValidationIssue[];
-      };
+        ok: false;
+        message: string;
+        issues?: SchemaValidationIssue[];
+    };
 
 /**
  * Marker on successful `schema.enforce` RPC results from the Process API.
@@ -211,11 +211,11 @@ const SIGNAL_EMIT_VALIDATION_HOST = Symbol.for('process.co.signalEmitValidationH
 export type SignalEmitValidationHostBinding =
     | Pick<SignalHostServices, 'enforceSchema'>
     | {
-          enforceSchema?: (
-              inputSchema: HttpInterfaceSchemaWire | undefined,
-              value: unknown,
-          ) => Promise<unknown>;
-      };
+        enforceSchema?: (
+            inputSchema: HttpInterfaceSchemaWire | undefined,
+            value: unknown,
+        ) => Promise<unknown>;
+    };
 
 function getSignalEmitValidationHostBinding(): Pick<SignalHostServices, 'enforceSchema'> | undefined {
     return (globalThis as Record<symbol, Pick<SignalHostServices, 'enforceSchema'> | undefined>)[
@@ -630,6 +630,7 @@ type PropTypeFromTypeValue<U, T = unknown> =
     : U extends "$.interface.schema" ? HttpInterfaceSchemaWire
     : U extends "$.interface.http" ? {
         respond: (response: HTTPResponse) => Promise<any> | void;
+        redirect: (url: string, status?: 301 | 302) => void;
         setResponseTimeout: (timeout: number) => void;
         authenticate: (authType: HTTPAuthenticationType, options?: { token?: string }) => Promise<any> | void;
         flow: FlowFunctions;
