@@ -526,6 +526,7 @@ type StringToType<S extends string> =
     S extends "string(markdown)" ? string :
     S extends "string(json)" ? string :
     S extends "string(xml)" ? string :
+    S extends "string(javascript)" ? string :
     S extends "string(yaml)" ? string :
     S extends "string(csv)" ? string :
     S extends "string(tsv)" ? string :
@@ -609,6 +610,7 @@ type PropTypeFromTypeValue<U, T = unknown> =
     : U extends "string(xml)" ? string
     : U extends "string(yaml)" ? string
     : U extends "string(base64)" ? string
+    : U extends "string(javascript)" ? string
     : U extends "string(csv)" ? string
     : U extends "string(tsv)" ? string
     : U extends "string(css)" ? string
@@ -784,7 +786,7 @@ export type SignalInstance<S extends Signal> = DeriveSignalInstance<S>;
 export type SignalMethod<S extends Signal> = (this: SignalInstance<S>, params: SignalRunOptions) => Promise<unknown>;
 export type ActionMethod<A extends Action> = (this: ActionInstance<A>, params: { $: any }) => Promise<unknown>;
 
-export type PropStringDefinitionTypes = "text" | "html" | "markdown" | "json" | "xml" | "yaml" | "csv" | "tsv" | "css" | "sql" | "email" | "emailList" | "urlList" | "url" | "base64";
+export type PropStringDefinitionTypes = "text" | "html" | "markdown" | "json" | "xml" | "yaml" | "csv" | "tsv" | "css" | "sql" | "email" | "emailList" | "urlList" | "url" | "base64" | "javascript";
 
 export type PropObjectDefinitionTypes = "json" | "base64"
 
