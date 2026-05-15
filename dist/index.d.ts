@@ -400,6 +400,7 @@ type PropTypeFromTypeValue<U, T = unknown> = U extends z.ZodObject<any, any> ? I
     }>;
 } : U extends "string" ? [PropOptionsValue<T>] extends [never] ? string : PropOptionsValue<T> : U extends "string(html)" ? string : U extends "string(markdown)" ? string : U extends "string(json)" ? string : U extends "string(xml)" ? string : U extends "string(yaml)" ? string : U extends "string(base64)" ? string : U extends "string(javascript)" ? string : U extends "string(csv)" ? string : U extends "string(tsv)" ? string : U extends "string(css)" ? string : U extends "string(sql)" ? string : U extends "string(email)" ? string : U extends "string(emailList)" ? string[] : U extends "string(urlList)" ? string[] : U extends "string(url)" ? string : U extends `$infer<${string}>` ? InferType<U> : U extends "$infer" ? any : U extends "object" ? Record<string, unknown> : U extends `object(${PropObjectDefinitionTypes})` ? any : U extends `file(${PropFileDefinitionTypes})` ? IFile : U extends "number" ? number : U extends "boolean" ? boolean : U extends "integer" ? number : U extends "$.interface.schema" ? HttpInterfaceSchemaWire : U extends "$.interface.http" ? {
     respond: (response: HTTPResponse) => Promise<any> | void;
+    setResponseTimeout: (timeout: number) => void;
     authenticate: (authType: HTTPAuthenticationType, options?: {
         token?: string;
     }) => Promise<any> | void;

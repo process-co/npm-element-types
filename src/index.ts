@@ -630,6 +630,7 @@ type PropTypeFromTypeValue<U, T = unknown> =
     : U extends "$.interface.schema" ? HttpInterfaceSchemaWire
     : U extends "$.interface.http" ? {
         respond: (response: HTTPResponse) => Promise<any> | void;
+        setResponseTimeout: (timeout: number) => void;
         authenticate: (authType: HTTPAuthenticationType, options?: { token?: string }) => Promise<any> | void;
         flow: FlowFunctions;
         end: () => void;
