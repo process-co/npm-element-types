@@ -597,7 +597,7 @@ type PropDefinitionInput<TType = unknown> = BasePropDefinition & {
 
 export type HttpInterfaceType = {
     respond: (response: HTTPResponse) => Promise<any> | void;
-    redirect: (url: string, status?: 301 | 302) => void;
+    redirect: (url: string, status?: 301 | 302) => Promise<void>;
     setResponseTimeout: (timeout: number) => void;
     authenticate: (authType: HTTPAuthenticationType, options?: { token?: string }) => Promise<any> | void;
     flow: FlowFunctions;
