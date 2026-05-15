@@ -595,6 +595,17 @@ type PropDefinitionInput<TType = unknown> = BasePropDefinition & {
     type: TType;
 };
 
+export type HttpInterfaceType = {
+    respond: (response: HTTPResponse) => Promise<any> | void;
+    redirect: (url: string, status?: 301 | 302) => void;
+    setResponseTimeout: (timeout: number) => void;
+    authenticate: (authType: HTTPAuthenticationType, options?: { token?: string }) => Promise<any> | void;
+    flow: FlowFunctions;
+    end: () => void;
+    execute: () => Promise<{ headers?: Record<string, string>;[key: string]: any }>
+};
+
+
 type PropTypeFromTypeValue<U, T = unknown> =
     U extends z.ZodObject<any, any> ? InferZodObjectShape<U>
     : U extends z.ZodArray<infer Item> ? Expand<Array<InferZodOutput<Item>>>
@@ -627,15 +638,7 @@ type PropTypeFromTypeValue<U, T = unknown> =
     : U extends "boolean" ? boolean
     : U extends "integer" ? number
     : U extends "$.interface.schema" ? HttpInterfaceSchemaWire
-    : U extends "$.interface.http" ? {
-        respond: (response: HTTPResponse) => Promise<any> | void;
-        redirect: (url: string, status?: 301 | 302) => void;
-        setResponseTimeout: (timeout: number) => void;
-        authenticate: (authType: HTTPAuthenticationType, options?: { token?: string }) => Promise<any> | void;
-        flow: FlowFunctions;
-        end: () => void;
-        execute: () => Promise<{ headers?: Record<string, string>;[key: string]: any }>
-    }
+    : U extends "$.interface.http" ? HttpInterfaceType
     : unknown;
 
 // Utility type for transforming prop definitions to their runtime types

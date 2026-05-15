@@ -393,12 +393,7 @@ type BasePropDefinition = {
     default?: any;
     visibleWhen?: any;
 };
-type PropTypeFromTypeValue<U, T = unknown> = U extends z.ZodObject<any, any> ? InferZodObjectShape<U> : U extends z.ZodArray<infer Item> ? Expand<Array<InferZodOutput<Item>>> : U extends z.ZodTypeAny ? Expand<InferZodOutput<U>> : U extends "http_request" ? {
-    execute: () => Promise<{
-        headers?: Record<string, string>;
-        [key: string]: any;
-    }>;
-} : U extends "string" ? [PropOptionsValue<T>] extends [never] ? string : PropOptionsValue<T> : U extends "string(html)" ? string : U extends "string(markdown)" ? string : U extends "string(json)" ? string : U extends "string(xml)" ? string : U extends "string(yaml)" ? string : U extends "string(base64)" ? string : U extends "string(javascript)" ? string : U extends "string(csv)" ? string : U extends "string(tsv)" ? string : U extends "string(css)" ? string : U extends "string(sql)" ? string : U extends "string(email)" ? string : U extends "string(emailList)" ? string[] : U extends "string(urlList)" ? string[] : U extends "string(url)" ? string : U extends `$infer<${string}>` ? InferType<U> : U extends "$infer" ? any : U extends "object" ? Record<string, unknown> : U extends `object(${PropObjectDefinitionTypes})` ? any : U extends `file(${PropFileDefinitionTypes})` ? IFile : U extends "number" ? number : U extends "boolean" ? boolean : U extends "integer" ? number : U extends "$.interface.schema" ? HttpInterfaceSchemaWire : U extends "$.interface.http" ? {
+export type HttpInterfaceType = {
     respond: (response: HTTPResponse) => Promise<any> | void;
     redirect: (url: string, status?: 301 | 302) => void;
     setResponseTimeout: (timeout: number) => void;
@@ -411,7 +406,13 @@ type PropTypeFromTypeValue<U, T = unknown> = U extends z.ZodObject<any, any> ? I
         headers?: Record<string, string>;
         [key: string]: any;
     }>;
-} : unknown;
+};
+type PropTypeFromTypeValue<U, T = unknown> = U extends z.ZodObject<any, any> ? InferZodObjectShape<U> : U extends z.ZodArray<infer Item> ? Expand<Array<InferZodOutput<Item>>> : U extends z.ZodTypeAny ? Expand<InferZodOutput<U>> : U extends "http_request" ? {
+    execute: () => Promise<{
+        headers?: Record<string, string>;
+        [key: string]: any;
+    }>;
+} : U extends "string" ? [PropOptionsValue<T>] extends [never] ? string : PropOptionsValue<T> : U extends "string(html)" ? string : U extends "string(markdown)" ? string : U extends "string(json)" ? string : U extends "string(xml)" ? string : U extends "string(yaml)" ? string : U extends "string(base64)" ? string : U extends "string(javascript)" ? string : U extends "string(csv)" ? string : U extends "string(tsv)" ? string : U extends "string(css)" ? string : U extends "string(sql)" ? string : U extends "string(email)" ? string : U extends "string(emailList)" ? string[] : U extends "string(urlList)" ? string[] : U extends "string(url)" ? string : U extends `$infer<${string}>` ? InferType<U> : U extends "$infer" ? any : U extends "object" ? Record<string, unknown> : U extends `object(${PropObjectDefinitionTypes})` ? any : U extends `file(${PropFileDefinitionTypes})` ? IFile : U extends "number" ? number : U extends "boolean" ? boolean : U extends "integer" ? number : U extends "$.interface.schema" ? HttpInterfaceSchemaWire : U extends "$.interface.http" ? HttpInterfaceType : unknown;
 export type PropType<T> = T extends {
     props: Record<string, any>;
     methods: Record<string, any>;
