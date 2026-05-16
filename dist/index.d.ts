@@ -262,6 +262,68 @@ export type HTTPAuthenticationType = "none" | "simple" | "platform" | "external"
 export type JSONValue = string | number | boolean | null | JSONValue[] | {
     [key: string]: JSONValue;
 };
+/**
+ * Incremental / SSE frame for {@link HttpInterfaceType.send}.
+ * Host formats SSE `event` / `id` / `data` lines; supply `data` and/or `comment` (comment-only heartbeats).
+ */
+export type HttpInterfaceSendPayload = {
+    event?: string;
+    id?: string;
+    data?: string | JSONValue;
+    /** SSE comment line content (`:` lines); ignored by `EventSource` default `onmessage` */
+    comment?: string;
+};
+/** Default TTFB deadline (ms) when {@link HttpInterfaceType.deferHttpResponse} omits `timeoutMs`. */
+export declare const DEFAULT_DEFER_HTTP_RESPONSE_MS = 30000;
+/** Incremental stream mode selected in {@link HttpDeferResponseOptions} (at most one). */
+export type HttpDeferredStreamMode = 'sse' | 'ndjson' | 'json-array' | 'concatenated';
+/**
+ * Options for {@link HttpInterfaceType.deferHttpResponse}.
+ * Omit stream flags for a **regular** HTTP response completed later via `respond` / `redirect`.
+ * Set exactly one stream flag for incremental streaming (`send` or `append`).
+ */
+export type HttpDeferResponseOptions = {
+    /**
+     * When `true`, the deferred exchange is SSE (`send` / stream). When omitted or `false`, expect a normal delayed `respond` / `redirect`.
+     */
+    sse?: boolean;
+    /**
+     * When `true`, stream newline-delimited JSON / JSON Lines (`append` + `\n` per record).
+     * See [NDJSON](https://en.wikipedia.org/wiki/JSON_streaming#Newline-delimited_JSON).
+     */
+    ndjson?: boolean;
+    /**
+     * When `true`, stream a single JSON **array** built incrementally (`[` … comma-separated `append` … `]`).
+     * Valid `application/json` after `end`. Not the same as Wikipedia “concatenated JSON”.
+     */
+    jsonArray?: boolean;
+    /**
+     * When `true`, stream [concatenated JSON](https://en.wikipedia.org/wiki/JSON_streaming#Concatenated_JSON):
+     * back-to-back JSON values with **no** delimiters (`{…}{…}`). Requires a streaming JSON parser on the client.
+     */
+    concatenated?: boolean;
+    /**
+     * SSE keepalive interval (ms). Only used when `sse` is `true`. Host writes comment heartbeats by default.
+     */
+    sseHeartbeatInterval?: number;
+    /** SSE `event:` for a single terminal frame when TTFB elapses before any output (SSE mode only) */
+    sseTimeoutEvent?: string;
+    /** JSON payload for `sseTimeoutEvent` `data:` lines; host-defined defaults if omitted (SSE mode only) */
+    sseTimeoutData?: JSONValue;
+    /** NDJSON / json-array TTFB timeout record; host defaults if omitted */
+    streamTimeoutRecord?: JSONValue;
+};
+/**
+ * Periodic SSE keepalive while the stream is open; cleared on {@link HttpInterfaceType.end} or a terminal {@link HttpInterfaceType.respond}.
+ * Pass `null` to disable a previously configured heartbeat.
+ */
+export type HttpSseHeartbeatOptions = {
+    intervalMs: number;
+    /** When true, write comment frames (`:`) suitable for silent heartbeats */
+    asComment?: boolean;
+    event?: string;
+    data?: string | JSONValue;
+};
 export interface SendConfigHTTP {
     method?: UppercaseHTTPMethod;
     url: string;
@@ -394,9 +456,29 @@ type BasePropDefinition = {
     visibleWhen?: any;
 };
 export type HttpInterfaceType = {
+    /**
+     * Full HTTP response (status / headers / body). Sending `body` completes the exchange for typical requests.
+     */
     respond: (response: HTTPResponse) => Promise<any> | void;
+    /**
+     * Incremental write or SSE frame; does not complete the exchange. Pair with {@link end} or a terminal {@link respond} where applicable.
+     */
+    send: (payload: HttpInterfaceSendPayload) => Promise<void> | void;
     redirect: (url: string, status?: 301 | 302) => Promise<void>;
-    setResponseTimeout: (timeout: number) => void;
+    /**
+     * Defer finishing the HTTP exchange until a later step completes it (or the TTFB deadline elapses).
+     * Use `options.sse` for SSE (`send`), or `ndjson` / `jsonArray` / `concatenated` for `append`, or omit for delayed `respond` / `redirect`.
+     * @param timeoutMs Time to first byte in milliseconds. Defaults to {@link DEFAULT_DEFER_HTTP_RESPONSE_MS} (30s) when omitted.
+     */
+    deferHttpResponse: (timeoutMs?: number, options?: HttpDeferResponseOptions) => void;
+    /**
+     * Append one JSON value to an incremental stream (`ndjson` or `jsonArray` defer modes). Each call is one line (NDJSON) or one array element (json-array).
+     */
+    append: (record: JSONValue) => Promise<void> | void;
+    /**
+     * SSE keepalive while the stream stays open. Pass `null` to disable.
+     */
+    setSseHeartbeat: (options: HttpSseHeartbeatOptions | null) => void;
     authenticate: (authType: HTTPAuthenticationType, options?: {
         token?: string;
     }) => Promise<any> | void;
