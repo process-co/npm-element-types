@@ -16,6 +16,8 @@ const _webhook = defineSignal({
     },
     hooks: {
         async save({ $ }) {
+            const _draft: boolean = $.isDraft;
+            void _draft;
             await $.http.configureResponseCaching({
                 maxAge: this.cacheMaxAge,
                 varyBy: '*',

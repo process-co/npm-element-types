@@ -185,8 +185,17 @@ export type SignalRunHostServices = {
 /** @deprecated Use {@link SignalRunHostServices} for `run`; hook `$` types are separate. */
 export type SignalHostServices = SignalRunHostServices;
 
-/** Host `params.$` during **`hooks.save`** (publish materialization only). */
-export type SignalSaveHookHostServices = {
+/** Shared on all signal hook `params.$` surfaces. */
+export type SignalHookHostContext = {
+    /**
+     * `true` when the hook runs during draft/editor materialization;
+     * `false` on publish / production hook runs.
+     */
+    isDraft: boolean;
+};
+
+/** Host `params.$` during **`hooks.save`**. */
+export type SignalSaveHookHostServices = SignalHookHostContext & {
     http: {
         configureResponseCaching: (
             options: ConfigureResponseCachingOptions,
@@ -197,8 +206,23 @@ export type SignalSaveHookHostServices = {
 /** @deprecated Use {@link SignalSaveHookHostServices} */
 export type HookSaveHostServices = SignalSaveHookHostServices;
 
-/** Host `params.$` during `hooks.activate` / `hooks.deactivate` (no `run` or `save` surfaces). */
-export type SignalLifecycleHookHostServices = Pick<SignalRunHostServices, 'export'>;
+/** Host `params.$` during `hooks.activate` / `hooks.deactivate`. */
+export type SignalLifecycleHookHostServices = SignalHookHostContext &
+    Pick<SignalRunHostServices, 'export'>;
+
+/** Inputs used to resolve {@link SignalHookHostContext.isDraft} in the API runner. */
+export type SignalHookDraftContextInput = {
+    isDraft?: boolean;
+    executionContext?: 'editor' | 'production' | 'test' | 'webhook' | (string & {});
+};
+
+/** Resolve `$.isDraft` for hook invocations (explicit flag wins; else `executionContext === 'editor'`). */
+export function resolveSignalHookIsDraft(ctx: SignalHookDraftContextInput): boolean {
+    if (typeof ctx.isDraft === 'boolean') {
+        return ctx.isDraft;
+    }
+    return ctx.executionContext === 'editor';
+}
 
 /** One row from a failed Zod `safeParse` (host / `validateEmitPayload`). */
 export type SchemaValidationIssue = {
