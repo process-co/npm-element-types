@@ -20,7 +20,9 @@ declare const _webhook: {
     readonly hooks: {
         readonly save: ({ $ }: SignalSaveHostParameters) => Promise<void>;
     };
-    readonly run: ({ $, event }: import("./index").SignalRunOptions) => Promise<void>;
+    readonly methods: {
+        readonly run: ({ $, event }: import("./index").SignalRunOptions) => Promise<void>;
+    };
 };
 export type _webhookType = typeof _webhook;
 export {};

@@ -31,7 +31,9 @@ declare const _signal: {
             };
         };
     };
-    readonly run: () => Promise<void>;
+    readonly methods: {
+        readonly run: () => Promise<void>;
+    };
 };
 export type _HttpOnThis = DeriveSignalInstance<typeof _signal>['http'];
 export type _HttpRuntime = DeriveEmbeddedAppPropInstance<typeof httpApp>;

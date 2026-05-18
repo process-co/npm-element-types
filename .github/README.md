@@ -105,13 +105,17 @@ export const inboundWebhook = defineSignal({
       $.export('lifecycle', 'activated');
     },
   },
-  async run({ $, event }) {
-    const parsed = await $.enforceSchema($.interfaceEmitSchema, event.body);
-    if (!parsed.ok) throw new Error(parsed.message);
-    await this.httpInterface.respond({ status: 200, body: { ok: true } });
+  methods: {
+    async run({ $, event }) {
+      const parsed = await $.enforceSchema($.interfaceEmitSchema, event.body);
+      if (!parsed.ok) throw new Error(parsed.message);
+      await this.httpInterface.respond({ status: 200, body: { ok: true } });
+    },
   },
 });
 ```
+
+Top-level `run` is still accepted for older definitions; runtime normalizes either shape via `restructureElement` in `@process.co/compatibility`.
 
 Hook names accept both modern (`save`, `activate`, `deactivate`) and legacy (`onSave`, `onActivate`, `onDeactivate`) aliases.
 
@@ -177,6 +181,7 @@ See JSDoc on **`HttpInterfaceSchemaWire`**, **`EnforceSchemaResult`**, and **`PR
 
 ```bash
 pnpm --filter @process.co/element-types build
+pnpm --filter @process.co/element-types test
 ```
 
 To publish to npm, prune/build/sync from the monorepo root — see root **`AGENTS.md`** and **`.cursor/skills/process-publishing-workflow`**.

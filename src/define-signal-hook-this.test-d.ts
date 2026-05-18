@@ -3,6 +3,7 @@
  */
 import {
     defineSignal,
+    type DeriveSignalInstance,
     type SignalRunHostServices,
     type SignalSaveHostParameters,
 } from './index';
@@ -30,12 +31,14 @@ const _webhook = defineSignal({
             await this.httpInterface.respond({ status: 200, body: {} });
         },
     },
-    async run({ $, event }) {
-        void event;
-        $.enforceSchema;
-        // @ts-expect-error — save-only host `$` is not available in run
-        $.http;
-        await this.httpInterface.deferHttpResponse(30_000);
+    methods: {
+        async run({ $, event }) {
+            void event;
+            $.enforceSchema;
+            // @ts-expect-error — save-only host `$` is not available in run
+            $.http;
+            await this.httpInterface.deferHttpResponse(30_000);
+        },
     },
 });
 
@@ -47,3 +50,20 @@ type _assertSaveDollar = _saveDollar extends SignalSaveHostParameters['$'] ? tru
 const _saveDollarCheck: _assertSaveDollar = true;
 type _saveDollarNotRun = SignalRunHostServices extends _saveDollar ? false : true;
 const _saveDollarNotRunCheck: _saveDollarNotRun = true;
+
+type _assertRunOnThis = typeof _webhook.methods.run extends DeriveSignalInstance<typeof _webhook>['run']
+    ? true
+    : false;
+const _runOnThisCheck: _assertRunOnThis = true;
+
+/** @deprecated top-level `run` — still accepted for older elements. */
+const _legacyTopLevelRun = defineSignal({
+    type: 'signal',
+    props: {},
+    async run({ $, event }) {
+        void event;
+        $.enforceSchema;
+    },
+});
+
+void _legacyTopLevelRun;

@@ -26,9 +26,11 @@ const _signal = defineSignal({
         httpInterface: { type: '$.interface.http' },
         http: httpApp,
     },
-    async run() {
-        this.http.httpRequest.execute;
-        this.httpInterface.deferHttpResponse;
+    methods: {
+        async run() {
+            this.http.httpRequest.execute;
+            this.httpInterface.deferHttpResponse;
+        },
     },
 });
 

@@ -1015,10 +1015,18 @@ export interface Action<P extends Record<string, any> = Record<string, any>> ext
     run: (this: DeriveActionInstance<Action<P>>, params: ActionRunOptions) => Promise<unknown>;
 }
 
-export interface Signal<P extends Record<string, any> = Record<string, any>> extends ModuleDefinition {
+export interface Signal<P extends Record<string, any> = Record<string, any>> {
     type: "signal";
+    app: string;
     props: P;
-    run: (this: DeriveSignalInstance<Signal<P>>, params: SignalRunOptions) => Promise<unknown>;
+    methods?: Record<string, unknown> & {
+        run: (this: DeriveSignalInstance<Signal<P>>, params: SignalRunOptions) => Promise<unknown>;
+    };
+    /**
+     * @deprecated Use `methods.run`.
+     */
+    run?: (this: DeriveSignalInstance<Signal<P>>, params: SignalRunOptions) => Promise<unknown>;
+    hooks?: SignalHooksDefinition<Signal<P>>;
 }
 
 type SignalRun<T> = (this: DeriveSignalInstance<T>, params: SignalRunOptions) => Promise<unknown>;
@@ -1149,25 +1157,54 @@ export type SignalHooksWithThis<T> = SignalHooksContextualDefinition &
 
 /** Structural requirements for a signal module (used by tooling; prefer {@link defineSignal}). */
 export type SignalDefinitionShape<T> = {
-    run: (this: DeriveSignalInstance<T>, params: SignalRunOptions) => Promise<unknown>;
+    methods: Record<string, unknown> & {
+        run: (this: DeriveSignalInstance<T>, params: SignalRunOptions) => Promise<unknown>;
+    };
+    /**
+     * @deprecated Use `methods.run`.
+     */
+    run?: (this: DeriveSignalInstance<T>, params: SignalRunOptions) => Promise<unknown>;
     hooks?: SignalHooksDefinition<T>;
 };
 
-/** @deprecated Use {@link defineSignal} — kept for generated lib compatibility. */
-export type SignalMethods = {
-    run: (params: SignalRunOptions) => Promise<unknown>;
+export type SignalRunFn = (params: SignalRunOptions) => void | Promise<unknown>;
+
+/** Canonical signal entrypoint — implement `run` here. */
+export type SignalMethodsRun = {
+    methods: Record<string, unknown> & { run: SignalRunFn };
 };
 
-export function defineSignal<const T extends SignalMethods & Record<string, unknown>>(
-    signal: T &
-        ThisType<DeriveSignalInstance<T>> & {
-            hooks?: SignalHooksWithThis<T>;
-        },
-): T {
+/**
+ * @deprecated Use `methods: { run }` instead of a top-level `run` property.
+ * Runtime still accepts this shape via `restructureElement`.
+ */
+export type SignalMethodsLegacyTopLevelRun = {
+    /** @deprecated Use `methods.run`. */
+    run?: SignalRunFn;
+};
+
+/** Minimum shape for {@link defineSignal}. Prefer {@link SignalMethodsRun}. */
+export type SignalMethods = SignalMethodsRun | SignalMethodsLegacyTopLevelRun;
+
+/** Contextual `this` for top-level and `methods.*` signal functions. */
+export type SignalMethodsWithThis<T> = T &
+    ThisType<DeriveSignalInstance<T>> &
+    (T extends { methods?: infer M extends Record<string, unknown> }
+        ? { methods: M & ThisType<DeriveSignalInstance<T>> }
+        : {});
+
+export function defineSignal<
+    const T extends SignalMethods & Record<string, unknown>,
+>(signal: SignalMethodsWithThis<T> & { hooks?: SignalHooksWithThis<T> }): T {
     return signal;
 }
 
-export type RunReturn<T> = T extends { run: (...args: any[]) => infer R } ? Awaited<R> : never;
+export type RunReturn<T> =
+    T extends { methods: { run: (...args: any[]) => infer R } }
+        ? Awaited<R>
+        : T extends { run: (...args: any[]) => infer R }
+          ? Awaited<R>
+          : never;
 
 export {
     ZOD_CONTAINER_EXPORT_TO_JSON_SCHEMA_PARAMS,
