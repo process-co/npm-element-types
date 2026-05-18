@@ -57,6 +57,7 @@ export type ElementIcon = {
     icon: string | ['far' | 'fas' | 'fab' | 'fal' | 'fad', string];
 } | string;
 import type { ISlotInstanceDefinition, ISlotStaticInstanceDefinition, ISlotDefinition } from './slot-definition';
+import { ConfigureResponseCachingOptions } from './http-request-cache';
 export type { ISlotInstanceDefinition, ISlotStaticInstanceDefinition, ISlotDefinition };
 export { builtinActionSlotsRegistry, type BuiltinActionSlotsRegistry, type BuiltinActionSlotsFern, type InferBuiltinActionSlots, } from './builtin-action-slots-registry';
 /** Full **`process-element` CLI** JSON shape (types only; materialize in **`@process.co/compatibility`** **`authoring-spec`**). */
@@ -65,6 +66,7 @@ export type { ProcessElementPropCliWire, ProcessElementActionCliWire, ProcessEle
 export { ELEMENT_AUTHORING_CONTRACT_VERSION } from './authoring-contract-types';
 export type { AuthoringPropWireKind, AuthoringPropContract, SlotBranchAuthoringContract, SlotsAuthoringContract, ActionAuthoringContract, SignalAuthoringContract, ElementAuthoringCatalogContract, ChildStepsPropertyForBranch, ActionPropKeys, ActionContractByFern, FernAuthoringShardFileV1, } from './authoring-contract-types';
 export { PLATFORM_BOUND_LOADER_TYPE_PREFIXES, isPlatformBoundLoaderType, } from './platform-loader-type';
+export { HTTP_REQUEST_CACHE_POLICY_KEY, REPLAY_BINDING_RANGE, REPLAY_META_RANGE, type BodyVaryProjection, type CacheVaryInfoWire, type ConfigureResponseCachingOptions, type DurationWire, type HttpRequestCacheMode, type HttpRequestCachePolicy, type HttpRequestCacheVary, } from './http-request-cache';
 export type ModuleDefinition = {
     type: string;
     app: string;
@@ -102,7 +104,7 @@ export type SignalEventShape = {
  * When {@link HttpInterfaceSchemaWire.validation} is true, the runtime does **not** validate against
  * those JSON blobs alone: it loads the ESM at {@link HttpInterfaceSchemaWire.compiledValidatorKey}
  * (default export = Zod schema) and runs full `safeParse` on the payload via the runner-bound
- * {@link SignalHostServices.enforceSchema} RPC (see {@link setSignalEmitValidationHost}).
+ * {@link SignalRunHostServices.enforceSchema} RPC (see {@link setSignalEmitValidationHost}).
  */
 export type HttpInterfaceSchemaWire = {
     /**
@@ -132,8 +134,11 @@ export type HttpInterfaceSchemaWire = {
      */
     coerceLeafPrimitives?: boolean | 'auto';
 };
-/** Host-backed RPC surface passed as `params.$` to signal `run` (parallel to action `ActionRunOptions.$`). */
-export type SignalHostServices = {
+/**
+ * Host `params.$` during signal **`run`** (live webhook / test execution).
+ * Not passed to `hooks.save` — use {@link SignalSaveHookHostServices} there.
+ */
+export type SignalRunHostServices = {
     export: (category: string, message: string) => void | Promise<void>;
     $transitionToSlot: (slots: Array<SlotTransitionDefinition>) => void | Promise<void>;
     /**
@@ -144,11 +149,23 @@ export type SignalHostServices = {
     enforceSchema: <T>(inputSchema: HttpInterfaceSchemaWire | undefined, value: unknown) => Promise<EnforceSchemaResult<T>>;
     /**
      * Wire for the primary `$.interface.schema` property (same persisted object the publish
-     * pipeline attaches `compiledValidatorKey` to). Use with {@link SignalHostServices.enforceSchema},
+     * pipeline attaches `compiledValidatorKey` to). Use with {@link SignalRunHostServices.enforceSchema},
      * e.g. `await $.enforceSchema($.interfaceEmitSchema, toEmit)`.
      */
     interfaceEmitSchema?: HttpInterfaceSchemaWire;
 };
+/** @deprecated Use {@link SignalRunHostServices} for `run`; hook `$` types are separate. */
+export type SignalHostServices = SignalRunHostServices;
+/** Host `params.$` during **`hooks.save`** (publish materialization only). */
+export type SignalSaveHookHostServices = {
+    http: {
+        configureResponseCaching: (options: ConfigureResponseCachingOptions) => Promise<void> | void;
+    };
+};
+/** @deprecated Use {@link SignalSaveHookHostServices} */
+export type HookSaveHostServices = SignalSaveHookHostServices;
+/** Host `params.$` during `hooks.activate` / `hooks.deactivate` (no `run` or `save` surfaces). */
+export type SignalLifecycleHookHostServices = Pick<SignalRunHostServices, 'export'>;
 /** One row from a failed Zod `safeParse` (host / `validateEmitPayload`). */
 export type SchemaValidationIssue = {
     path: string;
@@ -173,7 +190,7 @@ export type EnforceSchemaResult<T extends unknown = unknown> = {
  */
 export declare const PROCESS_CO_ENFORCE_SCHEMA_HOST_PAYLOAD_MARKER: "enforceSchema";
 export type SignalRunOptions = {
-    $: SignalHostServices;
+    $: SignalRunHostServices;
     event: SignalEventShape;
 };
 export type ValidateEmitPayloadResult<T> = {
@@ -186,9 +203,9 @@ export type ValidateEmitPayloadResult<T> = {
 };
 /**
  * Host shape accepted from the runner RPC bridge (`$.enforceSchema` may be typed as
- * returning `Promise<unknown>` while {@link SignalHostServices} uses a generic `T`).
+ * returning `Promise<unknown>` while {@link SignalRunHostServices} uses a generic `T`).
  */
-export type SignalEmitValidationHostBinding = Pick<SignalHostServices, 'enforceSchema'> | {
+export type SignalEmitValidationHostBinding = Pick<SignalRunHostServices, 'enforceSchema'> | {
     enforceSchema?: (inputSchema: HttpInterfaceSchemaWire | undefined, value: unknown) => Promise<unknown>;
 };
 /**
@@ -472,6 +489,11 @@ export type HttpInterfaceType = {
      */
     deferHttpResponse: (timeoutMs?: number, options?: HttpDeferResponseOptions) => void;
     /**
+     * Optional runtime vary suffix (hashed and appended to the HTTP base scenario key).
+     * Call when saved `$httpRequestCachePolicy.needsRuntimeVaryKey` is true.
+     */
+    setRequestVaryKey: (value: string) => void;
+    /**
      * Append one JSON value to an incremental stream (`ndjson` or `jsonArray` defer modes). Each call is one line (NDJSON) or one array element (json-array).
      */
     append: (record: JSONValue) => Promise<void> | void;
@@ -494,8 +516,29 @@ type PropTypeFromTypeValue<U, T = unknown> = U extends z.ZodObject<any, any> ? I
         headers?: Record<string, string>;
         [key: string]: any;
     }>;
-} : U extends "string" ? [PropOptionsValue<T>] extends [never] ? string : PropOptionsValue<T> : U extends "string(html)" ? string : U extends "string(markdown)" ? string : U extends "string(json)" ? string : U extends "string(xml)" ? string : U extends "string(yaml)" ? string : U extends "string(base64)" ? string : U extends "string(javascript)" ? string : U extends "string(csv)" ? string : U extends "string(tsv)" ? string : U extends "string(css)" ? string : U extends "string(sql)" ? string : U extends "string(email)" ? string : U extends "string(emailList)" ? string[] : U extends "string(urlList)" ? string[] : U extends "string(url)" ? string : U extends `$infer<${string}>` ? InferType<U> : U extends "$infer" ? any : U extends "object" ? Record<string, unknown> : U extends `object(${PropObjectDefinitionTypes})` ? any : U extends `file(${PropFileDefinitionTypes})` ? IFile : U extends "number" ? number : U extends "boolean" ? boolean : U extends "integer" ? number : U extends "$.interface.schema" ? HttpInterfaceSchemaWire : U extends "$.interface.http" ? HttpInterfaceType : unknown;
+} : U extends "string" ? [PropOptionsValue<T>] extends [never] ? string : PropOptionsValue<T> : U extends "string(html)" ? string : U extends "string(markdown)" ? string : U extends "string(json)" ? string : U extends "string(xml)" ? string : U extends "string(yaml)" ? string : U extends "string(base64)" ? string : U extends "string(javascript)" ? string : U extends "string(csv)" ? string : U extends "string(tsv)" ? string : U extends "string(css)" ? string : U extends "string(sql)" ? string : U extends "string(email)" ? string : U extends "string(emailList)" ? string[] : U extends "string(urlList)" ? string[] : U extends "string(url)" ? string : U extends `$infer<${string}>` ? InferType<U> : U extends "$infer" ? any : U extends "object" ? Record<string, unknown> : U extends `object(${PropObjectDefinitionTypes})` ? any : U extends `file(${PropFileDefinitionTypes})` ? IFile : U extends "number" ? number : U extends "boolean" ? boolean : U extends "integer" ? number : U extends "$.interface.schema" ? HttpInterfaceSchemaWire : U extends "$.interface.http" ? HttpInterfaceType : U extends "$.interface.duration" ? import('./http-request-cache').DurationWire : U extends "$.interface.cacheVaryInfo" ? import('./http-request-cache').CacheVaryInfoWire : unknown;
+/**
+ * Runtime shape of an embedded app prop (`props: { http: httpApp }` on a signal/action).
+ * Maps `propDefinitions` / `props` / `methods` to instance fields — not the `defineApp` module metadata (`type`, `app`, …).
+ */
+export type DeriveEmbeddedAppPropInstance<T extends {
+    type: 'app';
+}> = Spread<(T extends {
+    propDefinitions: Record<string, any>;
+} ? {
+    [K in keyof T['propDefinitions']]: PropType<T['propDefinitions'][K]>;
+} : {}) & (T extends {
+    props: Record<string, any>;
+} ? {
+    [K in keyof T['props']]: PropType<T['props'][K]>;
+} : {}) & (T extends {
+    methods: Record<string, any>;
+} ? {
+    [K in keyof T['methods']]: T['methods'][K];
+} : {})>;
 export type PropType<T> = T extends {
+    type: 'app';
+} ? DeriveEmbeddedAppPropInstance<T> : T extends {
     props: Record<string, any>;
     methods: Record<string, any>;
 } ? DeriveAppInstance<T> : T extends {
@@ -536,37 +579,69 @@ export type DeriveAppInstance<T> = Spread<Omit<T, "props" | "propDefinitions" | 
 } : {}) & {
     [K in keyof T as K extends "props" | "propDefinitions" | "methods" ? never : K]: T[K];
 }>;
-export type DeriveSignalInstance<T> = Spread<Omit<T, "props" | "propDefinitions" | "methods"> & (T extends {
+/** True when a prop definition resolves to `$.interface.http` (runtime-only on `run`). */
+type IsHttpInterfacePropDef<P> = P extends {
+    type: '$.interface.http';
+} ? true : P extends {
+    propDefinition: readonly [infer App, infer PropName];
+} ? App extends {
+    propDefinitions: Record<string, any>;
+} ? PropName extends keyof App['propDefinitions'] ? App['propDefinitions'][PropName] extends {
+    type: '$.interface.http';
+} ? true : false : false : App extends {
+    props: Record<string, any>;
+} ? PropName extends keyof App['props'] ? App['props'][PropName] extends {
+    type: '$.interface.http';
+} ? true : false : false : false : false;
+export type DeriveSignalInstance<T> = Spread<Omit<T, SignalInstanceExcludedKeys> & (T extends {
     props: Record<string, any>;
 } ? {
-    [K in keyof T["props"]]: PropType<T["props"][K]>;
+    [K in keyof T['props']]: PropType<T['props'][K]>;
 } : {}) & (T extends {
     propDefinitions: Record<string, any>;
 } ? {
-    [K in keyof T["propDefinitions"]]: PropType<T["propDefinitions"][K]>;
+    [K in keyof T['propDefinitions']]: PropType<T['propDefinitions'][K]>;
 } : {}) & EmitFunction & (T extends {
     methods: Record<string, any>;
 } ? {
-    [K in keyof T["methods"]]: T["methods"][K];
+    [K in keyof T['methods']]: T['methods'][K];
 } : {}) & {
-    [K in keyof T as K extends "props" | "propDefinitions" | "methods" ? never : K]: T[K];
+    [K in keyof T as K extends SignalInstanceExcludedKeys ? never : K]: T[K];
 }>;
+/** Module definition keys that are not instance fields on `this` in `run` or hooks. */
+type SignalInstanceExcludedKeys = 'props' | 'propDefinitions' | 'methods' | 'run' | 'hooks';
+/** Prop names on `T` that are `$.interface.http` (excluded from hook `this`). */
+type HttpInterfacePropKeys<T> = T extends {
+    props: infer P extends Record<string, unknown>;
+} ? keyof {
+    [K in keyof P as IsHttpInterfacePropDef<P[K]> extends true ? K : never]: true;
+} : never;
+/**
+ * `this` inside signal hooks: instance props minus `$.interface.http` and `$emit`.
+ * Use `params.$.http.configureResponseCaching` in `save`.
+ */
+export type DeriveSignalHookInstance<T> = Omit<DeriveSignalInstance<T>, HttpInterfacePropKeys<T> | keyof EmitFunction>;
 export type PropDefinitionType<App, PropName extends string> = App extends {
     propDefinitions: Record<string, any>;
 } ? PropName extends keyof App['propDefinitions'] ? PropType<App['propDefinitions'][PropName]> : unknown : unknown;
-export type DeriveActionInstance<T> = Spread<Omit<T, "props" | "propDefinitions" | "methods"> & (T extends {
+/** Module definition keys that are not instance fields on `this` in `run`. */
+type ActionInstanceExcludedKeys = 'props' | 'propDefinitions' | 'methods' | 'run' | 'type' | 'name' | 'description' | 'icon' | 'noAuth' | 'slots' | 'hasNew' | 'initValue';
+/** Runtime `this` for action `run` (prop values via {@link PropType}, including embedded apps). */
+export type DeriveActionInstance<T> = Spread<Omit<T, ActionInstanceExcludedKeys> & (T extends {
     props: Record<string, any>;
 } ? {
-    [K in keyof T["props"]]: PropType<T["props"][K]>;
+    [K in keyof T['props']]: PropType<T['props'][K]>;
 } : {}) & (T extends {
     propDefinitions: Record<string, any>;
 } ? {
-    [K in keyof T["propDefinitions"]]: PropType<T["propDefinitions"][K]>;
+    [K in keyof T['propDefinitions']]: PropType<T['propDefinitions'][K]>;
 } : {}) & (T extends {
     methods: Record<string, any>;
 } ? {
-    [K in keyof T["methods"]]: T["methods"][K];
-} : {})>;
+    [K in keyof T['methods']]: T['methods'][K];
+} : {}) & {
+    [K in keyof T as K extends ActionInstanceExcludedKeys ? never : K]: T[K];
+}>;
 export type ModuleWithThis<T> = T & ThisType<DeriveActionInstance<T>>;
 export interface Action<P extends Record<string, any> = Record<string, any>> extends ModuleDefinition {
     type: "action";
@@ -581,9 +656,7 @@ export interface Signal<P extends Record<string, any> = Record<string, any>> ext
 export type ActionInstance<A extends Action> = DeriveActionInstance<A>;
 export type SignalInstance<S extends Signal> = DeriveSignalInstance<S>;
 export type SignalMethod<S extends Signal> = (this: SignalInstance<S>, params: SignalRunOptions) => Promise<unknown>;
-export type ActionMethod<A extends Action> = (this: ActionInstance<A>, params: {
-    $: any;
-}) => Promise<unknown>;
+export type ActionMethod<A extends Action> = (this: ActionInstance<A>, params: ActionRunOptions) => Promise<unknown>;
 export type PropStringDefinitionTypes = "text" | "html" | "markdown" | "json" | "xml" | "yaml" | "csv" | "tsv" | "css" | "sql" | "email" | "emailList" | "urlList" | "url" | "base64" | "javascript";
 export type PropObjectDefinitionTypes = "json" | "base64";
 export type PropFileDefinitionTypes = "url" | "base64";
@@ -596,30 +669,86 @@ type SchemaPropDefinition<TSchema extends z.ZodTypeAny = z.ZodTypeAny> = BasePro
 };
 export type PropDefinition = StringPropDefinition | SchemaPropDefinition;
 export declare function defineApp<const T extends object>(app: T & ThisType<DeriveAppInstance<T>>): T;
-export declare function defineAction<const T extends {
-    props?: Record<string, unknown>;
-} & {
-    type: "action";
-} & {
-    name?: string;
-} & {
-    description?: string;
-} & {
-    icon?: ElementIcon;
-} & {
-    noAuth?: boolean;
-} & {
-    slots?: ISlotDefinition;
-} & {
-    methods?: Record<string, (...args: any[]) => any>;
-} & {
-    hasNew?: boolean;
-} & {
-    initValue?: any;
-}>(action: T & ThisType<DeriveActionInstance<T>>): T;
-export declare function defineSignal<const T extends {
+export type ActionRunFn = (params: ActionRunOptions) => void | Promise<unknown>;
+/** Canonical action entrypoint — implement `run` here (see process-internal loop, etc.). */
+export type ActionMethodsRun = {
+    methods: Record<string, unknown> & {
+        run: ActionRunFn;
+    };
+};
+/**
+ * @deprecated Use `methods: { run }` instead of a top-level `run` property.
+ * Runtime still accepts this shape via `restructureElement`.
+ */
+export type ActionMethodsLegacyTopLevelRun = {
+    /** @deprecated Use `methods.run`. */
+    run?: ActionRunFn;
+};
+/** Minimum shape for {@link defineAction}. Prefer {@link ActionMethodsRun}. */
+export type ActionMethods = ActionMethodsRun | ActionMethodsLegacyTopLevelRun;
+/** Structural requirements for an action module (tooling; prefer {@link defineAction}). */
+export type ActionDefinitionShape<T> = {
+    methods: Record<string, unknown> & {
+        run: (this: DeriveActionInstance<T>, params: ActionRunOptions) => Promise<unknown>;
+    };
+    /**
+     * @deprecated Use `methods.run`.
+     */
+    run?: (this: DeriveActionInstance<T>, params: ActionRunOptions) => Promise<unknown>;
+};
+/** Contextual `this` for top-level and `methods.*` action functions. */
+export type ActionMethodsWithThis<T> = T & ThisType<DeriveActionInstance<T>> & (T extends {
+    methods?: infer M extends Record<string, unknown>;
+} ? {
+    methods: M & ThisType<DeriveActionInstance<T>>;
+} : {});
+export declare function defineAction<const T extends ActionMethods & {
+    type: 'action';
+} & Record<string, unknown>>(action: ActionMethodsWithThis<T>): T;
+/** `params.$` for `hooks.activate` / `hooks.deactivate`. */
+export type SignalHostHookParameters = {
+    $: SignalLifecycleHookHostServices;
+};
+/** `params.$` for `hooks.save` — publish-only; not {@link SignalRunHostServices}. */
+export type SignalSaveHostParameters = {
+    $: SignalSaveHookHostServices;
+};
+export type SignalHostHookMethod<T> = (this: DeriveSignalHookInstance<T>, params: SignalHostHookParameters) => void | Promise<void>;
+export type SignalSaveHookMethod<T> = (this: DeriveSignalHookInstance<T>, params: SignalSaveHostParameters) => void | Promise<void>;
+export type SignalHooksDefinition<T> = {
+    deactivate?: SignalHostHookMethod<T>;
+    activate?: SignalHostHookMethod<T>;
+    save?: SignalSaveHookMethod<T>;
+    onDeactivate?: SignalHostHookMethod<T>;
+    onActivate?: SignalHostHookMethod<T>;
+    onSave?: SignalSaveHookMethod<T>;
+};
+/**
+ * Hook implementations for {@link defineSignal}: `params.$` is typed here; `this` comes from
+ * {@link ThisType}<{@link DeriveSignalHookInstance}<T>> (avoids circular `T` and empty `this`).
+ */
+export type SignalHooksContextualDefinition = {
+    deactivate?: (params: SignalHostHookParameters) => void | Promise<void>;
+    activate?: (params: SignalHostHookParameters) => void | Promise<void>;
+    save?: (params: SignalSaveHostParameters) => void | Promise<void>;
+    onDeactivate?: (params: SignalHostHookParameters) => void | Promise<void>;
+    onActivate?: (params: SignalHostHookParameters) => void | Promise<void>;
+    onSave?: (params: SignalSaveHostParameters) => void | Promise<void>;
+};
+/** Hook bag for {@link defineSignal}. */
+export type SignalHooksWithThis<T> = SignalHooksContextualDefinition & ThisType<DeriveSignalHookInstance<T>>;
+/** Structural requirements for a signal module (used by tooling; prefer {@link defineSignal}). */
+export type SignalDefinitionShape<T> = {
+    run: (this: DeriveSignalInstance<T>, params: SignalRunOptions) => Promise<unknown>;
+    hooks?: SignalHooksDefinition<T>;
+};
+/** @deprecated Use {@link defineSignal} — kept for generated lib compatibility. */
+export type SignalMethods = {
     run: (params: SignalRunOptions) => Promise<unknown>;
-}>(signal: T & ThisType<DeriveSignalInstance<T>>): T;
+};
+export declare function defineSignal<const T extends SignalMethods & Record<string, unknown>>(signal: T & ThisType<DeriveSignalInstance<T>> & {
+    hooks?: SignalHooksWithThis<T>;
+}): T;
 export type RunReturn<T> = T extends {
     run: (...args: any[]) => infer R;
 } ? Awaited<R> : never;
