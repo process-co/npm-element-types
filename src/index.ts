@@ -180,6 +180,12 @@ export type SignalRunHostServices = {
      * e.g. `await $.enforceSchema($.interfaceEmitSchema, toEmit)`.
      */
     interfaceEmitSchema?: HttpInterfaceSchemaWire;
+
+    /**
+     * Runtime metadata (parsed FERN info) for the currently-executing signal.
+     * See {@link ProcessRuntimeContext}.
+     */
+    runtime?: ProcessRuntimeContext;
 };
 
 /** @deprecated Use {@link SignalRunHostServices} for `run`; hook `$` types are separate. */
@@ -579,8 +585,85 @@ export interface SlotTransitionDefinition {
     label: string;
 }
 
+/**
+ * Subset of parsed FERN information for the currently-executing element.
+ * Mirrors `IFERNInfo` from `@process.co/interfaces`; defined locally so
+ * `@process.co/element-types` stays a leaf published package.
+ */
+export interface ProcessRuntimeFernInfo {
+    /** Namespace slug (e.g. `process-internal`, `acme`). */
+    namespace?: string;
+    /** Optional `[modifier]` between namespace and tag (e.g. `[client_id]`). */
+    namespaceModifier?: string;
+    /** Namespace tag (e.g. `main`); mutually exclusive with `serial`. */
+    tag?: string;
+    /** Numeric namespace serial; mutually exclusive with `tag`. */
+    serial?: bigint;
+    /** Element type kind: `action` | `signal` | `flow` | `credential` | … */
+    elementType?: string;
+    /** Element type slug (e.g. `switch`, `if-then`). */
+    elementTypeName?: string;
+    /** Cuid for the specific instance of the element in a flow/document. */
+    elementId?: string;
+    /** Optional inner flow/container id. */
+    flowId?: string;
+    /** Optional simulation/session id. */
+    sessionId?: string;
+    /** Optional element display name. */
+    elementName?: string;
+    /** Method name (defaults to `execute` for actions/signals/flows). */
+    methodName?: string;
+    /** Optional method class (e.g. `hooks`). */
+    methodClass?: string;
+    /** Globally qualified element type (no tag/serial). */
+    gqElementType?: string;
+    /** Fully qualified element type (with tag/serial). */
+    fqElementType?: string;
+    /** Globally qualified element type name. */
+    gqElementTypeName?: string;
+    /** Fully qualified element type name. */
+    fqElementTypeName?: string;
+    /** Globally qualified method name. */
+    gqMethodName?: string;
+    /** Fully qualified method name. */
+    fqMethodName?: string;
+    /** Globally qualified namespace. */
+    gqNamespace?: string;
+    /** Fully qualified namespace. */
+    fqNamespace?: string;
+    /** Composite element id key (`elementId#flowId@sessionId:$id`). */
+    fqElementIDKey?: string;
+    /** True when the element type denotes user-authored code. */
+    isUserCodeElement?: boolean;
+    /** True when the element type denotes a workflow/flow element. */
+    isWorkflowElement?: boolean;
+}
+
+/**
+ * Runtime metadata exposed on `$.runtime` for internal element code.
+ *
+ * Use `$.runtime.current.elementId` (and other parsed FERN fields) inside
+ * `run()` to construct slot ids, log keys, etc. without relying on the
+ * legacy `{{ID_GUID}}` template placeholder that the executor used to
+ * substitute after the fact.
+ */
+export interface ProcessRuntimeContext {
+    /**
+     * Parsed FERN info for the currently-executing element. Populated by
+     * the runner host from the inbound `FERN` and made available on `$`
+     * before user `run()` code is invoked.
+     */
+    current: ProcessRuntimeFernInfo;
+}
+
 export interface ProcessInternalFunctions extends ProcessFunctions {
     $transitionToSlot(slots: Array<SlotTransitionDefinition>): void;
+    /**
+     * Runtime metadata for the currently-executing element. Use
+     * `$.runtime.current.elementId` (etc.) instead of the deprecated
+     * `{{ID_GUID}}` slot-id template placeholder.
+     */
+    runtime: ProcessRuntimeContext;
 }
 
 export interface FlowControlExtensions {
