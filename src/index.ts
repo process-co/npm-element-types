@@ -120,11 +120,17 @@ export type SignalEventShape = {
 
 /**
  * Persisted subset of `$.interface.schema` (HTTP triggers, etc.) used at execution.
- * Design-time fields (`exportSchema`, `exportSchemaZodex`, etc.) are hints for editors and tooling.
- * When {@link HttpInterfaceSchemaWire.validation} is true, the runtime does **not** validate against
- * those JSON blobs alone: it loads the ESM at {@link HttpInterfaceSchemaWire.compiledValidatorKey}
- * (default export = Zod schema) and runs full `safeParse` on the payload via the runner-bound
- * {@link SignalRunHostServices.enforceSchema} RPC (see {@link setSignalEmitValidationHost}).
+ *
+ * Design-time fields (`exportSchema`, `exportSchemaZodex`, `exportSchemaSource`,
+ * `compiledValidatorKey`) are authoring/typing metadata used by the editor for type
+ * inference, completion, and tooling. They never trigger runtime validation by themselves.
+ *
+ * Runtime Zod enforcement is controlled exclusively by {@link HttpInterfaceSchemaWire.validation}:
+ * when `validation === true` the runner loads the compiled ESM at
+ * {@link HttpInterfaceSchemaWire.compiledValidatorKey} (default export = Zod schema) and
+ * runs full `safeParse` on the payload via {@link SignalRunHostServices.enforceSchema}
+ * (see {@link setSignalEmitValidationHost}). When `validation` is `undefined` or `false`,
+ * the schema is treated as types-only and the value is passed through unchanged.
  */
 export type HttpInterfaceSchemaWire = {
     /**
@@ -324,9 +330,13 @@ function validationIssuesFromUnknown(e: unknown): SchemaValidationIssue[] | unde
 }
 
 /**
- * When validation is required (explicit `validation: true`, or a non-empty `compiledValidatorKey`
- * with `validation` not `false`), awaits the bound host's `enforceSchema` so the API runs the
- * **compiled Zod** validator. Otherwise returns `value` unchanged.
+ * Validation policy: `inputSchema.validation === true` is the sole switch that turns
+ * runtime Zod enforcement on. The presence of `compiledValidatorKey` /
+ * `exportSchemaSource` is authoring metadata for editor type inference and does not, by
+ * itself, cause runtime validation. When validation is on, this awaits the bound host's
+ * `enforceSchema` so the API runs the **compiled Zod** validator. Otherwise returns
+ * `value` unchanged.
+ *
  * On failure, `issues` lists Zod paths/messages when the host provides them (forward into your
  * `http.respond` JSON body alongside any `requestStatus` you use).
  * (see {@link setSignalEmitValidationHost}).
@@ -335,14 +345,7 @@ export async function validateEmitPayload<T>(
     inputSchema: HttpInterfaceSchemaWire | undefined,
     value: unknown,
 ): Promise<ValidateEmitPayloadResult<T>> {
-    const hasCompiled =
-        inputSchema &&
-        typeof inputSchema.compiledValidatorKey === 'string' &&
-        inputSchema.compiledValidatorKey.length > 0;
-    if (inputSchema?.validation === false) {
-        return { ok: true, value: value as T };
-    }
-    if (!hasCompiled && inputSchema?.validation !== true) {
+    if (inputSchema?.validation !== true) {
         return { ok: true, value: value as T };
     }
     const bound = getSignalEmitValidationHostBinding();
