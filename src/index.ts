@@ -22,6 +22,7 @@ import type {
     ISlotDefinition,
 } from './slot-definition';
 import { ConfigureResponseCachingOptions } from './http-request-cache';
+import type { ConfigureIngressFiltersOptions } from './ingress-filters';
 
 export type { ISlotInstanceDefinition, ISlotStaticInstanceDefinition, ISlotDefinition };
 
@@ -73,6 +74,22 @@ export {
     type HttpRequestCachePolicy,
     type HttpRequestCacheVary,
 } from './http-request-cache';
+
+export {
+    INGRESS_FILTERS_KEY,
+    INGRESS_FILTER_TYPES,
+    type ConfigureIngressFiltersOptions,
+    type IngressAuthExtract,
+    type IngressChallengeResponseFilter,
+    type IngressFilterDescriptor,
+    type IngressFiltersPolicy,
+    type IngressHMACVerifyFilter,
+    type IngressHttpNewRequestsFilter,
+    type IngressJSONPathMetaFilter,
+    type IngressRespondThenEmitFilter,
+    type IngressVerifyAuthFilter,
+    type IngressVerifyAuthKind,
+} from './ingress-filters';
 
 // Base types for module definitions
 export type ModuleDefinition = {
@@ -209,10 +226,30 @@ export type SignalHookHostContext = {
 /** Host `params.$` during **`hooks.save`**. */
 export type SignalSaveHookHostServices = SignalHookHostContext & {
     http: {
+    
+        /**
+         * Configure response caching for this signal.
+         * @param options - The options for configuring response caching.
+         * @returns A promise that resolves when the response caching is configured.
+         */
         configureResponseCaching: (
             options: ConfigureResponseCachingOptions,
         ) => Promise<void> | void;
+
+        /**
+         * Declare a Go-native ingress filter chain for this signal.
+         * The chain is validated at publish time and persisted onto the
+         * element row at `$ingressFilters`. The Go edge executes the filters
+         * in order **instead of** proxying back to Node.
+         *
+         * Omit (or call with an empty list) to fall back to the default
+         * `ext_proc` proxy.
+         */
+        configureIngressFilters: (
+            options: ConfigureIngressFiltersOptions,
+        ) => Promise<void> | void;
     };
+
 };
 
 /** @deprecated Use {@link SignalSaveHookHostServices} */

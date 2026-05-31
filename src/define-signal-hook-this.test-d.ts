@@ -23,6 +23,14 @@ const _webhook = defineSignal({
                 maxAge: this.cacheMaxAge,
                 varyBy: '*',
             });
+            await $.http.configureIngressFilters({
+                filters: [
+                    {
+                        type: 'http_new_requests',
+                        config: { resStatusCode: 200, resBody: 'ok' },
+                    },
+                ],
+            });
             // @ts-expect-error — `run` host `$` is not available in hooks.save
             $.enforceSchema;
             // @ts-expect-error — `$emit` is only on `run` `this`, not hooks

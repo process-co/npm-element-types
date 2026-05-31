@@ -126,7 +126,7 @@ Host capabilities are **split by hook** so TypeScript prevents calling the wrong
 | Surface | When | `params.$` type | Typical capabilities |
 |--------|------|-----------------|----------------------|
 | **`run`** | Live webhook / test execution | `SignalRunHostServices` | `enforceSchema`, `export`, `$transitionToSlot`, `interfaceEmitSchema` |
-| **`hooks.save`** | Publish / save materialization | `SignalSaveHookHostServices` | `isDraft`, `http.configureResponseCaching` |
+| **`hooks.save`** | Publish / save materialization | `SignalSaveHookHostServices` | `isDraft`, `http.configureResponseCaching`, `http.configureIngressFilters` |
 | **`hooks.activate` / `hooks.deactivate`** | Lifecycle | `SignalLifecycleHookHostServices` | `isDraft`, `export` |
 
 `this` in hooks is **`DeriveSignalHookInstance`** (props only). `this` in **`run`** is **`DeriveSignalInstance`** (includes runtime helpers such as HTTP interface methods).
