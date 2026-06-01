@@ -58,7 +58,7 @@ export type ElementIcon = {
 } | string;
 import type { ISlotInstanceDefinition, ISlotStaticInstanceDefinition, ISlotDefinition } from './slot-definition';
 import { ConfigureResponseCachingOptions } from './http-request-cache';
-import type { ConfigureIngressFiltersOptions } from './ingress-filters';
+import type { ConfigureIngressFiltersOptions, IngressFiltersPolicy } from './ingress-filters';
 export type { ISlotInstanceDefinition, ISlotStaticInstanceDefinition, ISlotDefinition };
 export { builtinActionSlotsRegistry, type BuiltinActionSlotsRegistry, type BuiltinActionSlotsFern, type InferBuiltinActionSlots, } from './builtin-action-slots-registry';
 /** Full **`process-element` CLI** JSON shape (types only; materialize in **`@process.co/compatibility`** **`authoring-spec`**). */
@@ -68,7 +68,7 @@ export { ELEMENT_AUTHORING_CONTRACT_VERSION } from './authoring-contract-types';
 export type { AuthoringPropWireKind, AuthoringPropContract, SlotBranchAuthoringContract, SlotsAuthoringContract, ActionAuthoringContract, SignalAuthoringContract, ElementAuthoringCatalogContract, ChildStepsPropertyForBranch, ActionPropKeys, ActionContractByFern, FernAuthoringShardFileV1, } from './authoring-contract-types';
 export { PLATFORM_BOUND_LOADER_TYPE_PREFIXES, isPlatformBoundLoaderType, } from './platform-loader-type';
 export { HTTP_REQUEST_CACHE_POLICY_KEY, REPLAY_BINDING_RANGE, REPLAY_META_RANGE, type BodyVaryProjection, type CacheVaryInfoWire, type ConfigureResponseCachingOptions, type DurationWire, type HttpRequestCacheMode, type HttpRequestCachePolicy, type HttpRequestCacheVary, } from './http-request-cache';
-export { INGRESS_FILTERS_KEY, INGRESS_FILTER_TYPES, type ConfigureIngressFiltersOptions, type IngressAuthExtract, type IngressChallengeResponseFilter, type IngressFilterDescriptor, type IngressFiltersPolicy, type IngressHMACVerifyFilter, type IngressHttpNewRequestsFilter, type IngressJSONPathMetaFilter, type IngressRespondThenEmitFilter, type IngressVerifyAuthFilter, type IngressVerifyAuthKind, } from './ingress-filters';
+export { INGRESS_FILTERS_KEY, INGRESS_FILTER_TYPES, type ConfigureIngressFiltersOptions, type IngressAuthExtract, type IngressChallengeResponseFilter, type IngressEmitFilter, type IngressFilterDescriptor, type IngressFiltersPolicy, type IngressHMACVerifyFilter, type IngressHttpNewRequestsFilter, type IngressJSONPathMetaFilter, type IngressRespondThenEmitFilter, type IngressValidateJSONSchemaFilter, type IngressValidateZodFilter, type IngressVerifyAuthFilter, type IngressVerifyAuthKind, } from './ingress-filters';
 export type ModuleDefinition = {
     type: string;
     app: string;
@@ -739,7 +739,8 @@ type HttpInterfacePropKeys<T> = T extends {
     [K in keyof P as IsHttpInterfacePropDef<P[K]> extends true ? K : never]: true;
 } : never;
 /**
- * `this` inside signal hooks: instance props minus `$.interface.http` and `$emit`.
+ * `this` inside signal hooks: instance props/static metadata minus
+ * `$.interface.http` and `$emit`.
  * Use `params.$.http.configureResponseCaching` in `save`.
  */
 export type DeriveSignalHookInstance<T> = Omit<DeriveSignalInstance<T>, HttpInterfacePropKeys<T> | keyof EmitFunction>;
@@ -869,6 +870,15 @@ export type SignalHooksContextualDefinition = {
 export type SignalHooksWithThis<T> = SignalHooksContextualDefinition & ThisType<DeriveSignalHookInstance<T>>;
 /** Structural requirements for a signal module (used by tooling; prefer {@link defineSignal}). */
 export type SignalDefinitionShape<T> = {
+    /**
+     * Static edge-ingress declaration authored on the element definition.
+     *
+     * During save/publish this public `ingress.filters` shape is materialized
+     * onto the element row as `$ingressFilters`. A `hooks.save` body may call
+     * `params.$.http.configureIngressFilters(...)` to replace the materialized
+     * chain when the final filter list depends on authored props.
+     */
+    ingress?: IngressFiltersPolicy;
     methods: Record<string, unknown> & {
         run: (this: DeriveSignalInstance<T>, params: SignalRunOptions) => Promise<unknown>;
     };
@@ -895,13 +905,25 @@ export type SignalMethodsLegacyTopLevelRun = {
 };
 /** Minimum shape for {@link defineSignal}. Prefer {@link SignalMethodsRun}. */
 export type SignalMethods = SignalMethodsRun | SignalMethodsLegacyTopLevelRun;
+/** Public static edge-ingress declaration accepted by {@link defineSignal}. */
+export type SignalIngressDeclaration = IngressFiltersPolicy;
+/** Optional static metadata accepted on every signal definition. */
+export type SignalStaticMetadata = {
+    /**
+     * Static edge-ingress filter chain for this signal. The element definition
+     * uses `ingress.filters`; save/publish materializes it to the reserved row
+     * field `$ingressFilters`. Calling `configureIngressFilters` in `hooks.save`
+     * replaces this default chain completely.
+     */
+    ingress?: SignalIngressDeclaration;
+};
 /** Contextual `this` for top-level and `methods.*` signal functions. */
 export type SignalMethodsWithThis<T> = T & ThisType<DeriveSignalInstance<T>> & (T extends {
     methods?: infer M extends Record<string, unknown>;
 } ? {
     methods: M & ThisType<DeriveSignalInstance<T>>;
 } : {});
-export declare function defineSignal<const T extends SignalMethods & Record<string, unknown>>(signal: SignalMethodsWithThis<T> & {
+export declare function defineSignal<const T extends SignalMethods & SignalStaticMetadata & Record<string, unknown>>(signal: SignalMethodsWithThis<T> & {
     hooks?: SignalHooksWithThis<T>;
 }): T;
 export type RunReturn<T> = T extends {

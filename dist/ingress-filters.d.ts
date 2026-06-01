@@ -1,8 +1,10 @@
 /**
  * Webhook ingress filter chain — author-facing types.
  *
- * Authors call `params.$.http.configureIngressFilters(...)` from `hooks.save`
- * to declare a Go-native filter chain that runs at the edge **instead of**
+ * Authors declare a static Go-native filter chain with
+ * `defineSignal({ ingress: { filters } })`, and may call
+ * `params.$.http.configureIngressFilters(...)` from `hooks.save` to replace
+ * that default chain. The final chain runs at the edge **instead of**
  * proxying the request back to Node. The chain is validated at publish time
  * and persisted onto the element's stash row at {@link INGRESS_FILTERS_KEY}.
  *
@@ -10,8 +12,8 @@
  * each filter in order. When the chain is absent the edge falls back to
  * `ext_proc` (proxy back to the Node API).
  *
- * Style mirrors {@link ./http-request-cache.ts}: a single save-hook host
- * method with a typed options shape that materializes onto the element row.
+ * Style mirrors {@link ./http-request-cache.ts}: public authoring shape first,
+ * reserved `$` materialized row field at save/publish time.
  */
 /** Where to read auth material from on the inbound HTTP request. */
 export type IngressAuthExtract = {
@@ -41,16 +43,69 @@ export type IngressVerifyAuthFilter = {
 /**
  * Native Go implementation of `http::signal:new-requests`.
  *
- * Receives the published instance row as `config` and uses it to render the
- * static response, optionally body-only emit, and project the inbound HTTP
- * envelope onto Pulsar in the same shape the Node executor produced.
+ * This is a built-in filter for a specific element shape. The chain entry
+ * should usually be `{ type: 'http_new_requests' }`; the Go runtime reads
+ * authored fields such as `responseType`, `resBodyJSON`, `eventData`, and
+ * `resIncludeProcessTicket` from the published element row.
  */
 export type IngressHttpNewRequestsFilter = {
     type: 'http_new_requests';
-    config: {
+    config?: {
         resStatusCode?: number;
         resBody?: string;
         resContentType?: string;
+        emitBodyOnly?: boolean;
+        eventData?: 'full' | 'body';
+        responseType?: 'OK' | 'NO_CONTENT' | 'STATIC' | 'CUSTOM' | string;
+        responseTimeout?: number;
+        includeProcessTicket?: boolean;
+        summary?: string;
+    };
+};
+/** Validate the selected inbound payload against JSON Schema before emit. */
+export type IngressValidateJSONSchemaFilter = {
+    type: 'validate_json_schema';
+    config: {
+        schema: Record<string, unknown>;
+        eventData?: 'full' | 'body';
+        responseType?: 'OK' | 'NO_CONTENT' | 'STATIC' | 'CUSTOM' | string;
+    };
+};
+/**
+ * Validate the inbound payload against a Zod schema hosted on Node.
+ *
+ * The Go edge cannot evaluate Zod schemas natively (they are TypeScript
+ * runtime objects, not data), so this filter delegates to a Node
+ * "validate" microservice at `_internal/zod-validate/:schemaBuildId`.
+ * The schema is registered against `schemaBuildId` at element publish
+ * time; the edge calls it as a sidecar and reads back a structured
+ * result. Aligns with the envoy-style filter chain so we keep full Zod
+ * validation on the edge without porting the engine to Go.
+ *
+ * `failOpen=true` lets the chain continue when the validate endpoint is
+ * unreachable. Default is `false` (reject with 502 on outage).
+ */
+export type IngressValidateZodFilter = {
+    type: 'validate_zod';
+    config: {
+        /** Stable identity for the registered Zod schema. Required. */
+        schemaBuildId: string;
+        /** Optional friendly name used in error messages. */
+        schemaName?: string;
+        eventData?: 'full' | 'body';
+        responseType?: 'OK' | 'NO_CONTENT' | 'STATIC' | 'CUSTOM' | string;
+        /** Continue the chain when the validate endpoint cannot be reached. */
+        failOpen?: boolean;
+    };
+};
+/**
+ * Generic chain equivalent of a source calling `$emit`. Compound filters such
+ * as `http_new_requests` may emit directly instead of composing this filter.
+ */
+export type IngressEmitFilter = {
+    type: '$emit';
+    config: {
+        eventData?: 'full' | 'body';
         emitBodyOnly?: boolean;
         summary?: string;
     };
@@ -106,8 +161,8 @@ export type IngressJSONPathMetaFilter = {
  * must be added here AND registered on the Go edge — `validate-ingress-filters`
  * rejects unknown types at publish time.
  */
-export type IngressFilterDescriptor = IngressVerifyAuthFilter | IngressHttpNewRequestsFilter | IngressRespondThenEmitFilter | IngressHMACVerifyFilter | IngressChallengeResponseFilter | IngressJSONPathMetaFilter;
-/** Save-only: hooks.save → `$.http.configureIngressFilters`. */
+export type IngressFilterDescriptor = IngressVerifyAuthFilter | IngressValidateJSONSchemaFilter | IngressValidateZodFilter | IngressEmitFilter | IngressHttpNewRequestsFilter | IngressRespondThenEmitFilter | IngressHMACVerifyFilter | IngressChallengeResponseFilter | IngressJSONPathMetaFilter;
+/** Save-only override: hooks.save → `$.http.configureIngressFilters`. */
 export type ConfigureIngressFiltersOptions = {
     filters: IngressFilterDescriptor[];
 };

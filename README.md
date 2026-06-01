@@ -84,6 +84,9 @@ export const inboundWebhook = defineSignal({
   type: 'signal',
   app: 'example_app',
   key: 'inbound_webhook',
+  ingress: {
+    filters: [{ type: 'http_new_requests' }],
+  },
   props: {
     httpInterface: { type: '$.interface.http' },
     cacheMaxAge: { type: '$.interface.duration', default: 86_400 },
@@ -114,6 +117,8 @@ Top-level `run` is still accepted for older definitions; runtime normalizes eith
 
 Hook names accept both modern (`save`, `activate`, `deactivate`) and legacy (`onSave`, `onActivate`, `onDeactivate`) aliases.
 
+`ingress.filters` is a static edge-ingress declaration. Save/publish materializes it to the reserved row field `$ingressFilters`. A `hooks.save` body can call `$.http.configureIngressFilters(...)` to replace the static default completely.
+
 ## Signal host surfaces
 
 Host capabilities are **split by hook** so TypeScript prevents calling the wrong API:
@@ -124,7 +129,7 @@ Host capabilities are **split by hook** so TypeScript prevents calling the wrong
 | **`hooks.save`** | Publish / save materialization | `SignalSaveHookHostServices` | `isDraft`, `http.configureResponseCaching`, `http.configureIngressFilters` |
 | **`hooks.activate` / `hooks.deactivate`** | Lifecycle | `SignalLifecycleHookHostServices` | `isDraft`, `export` |
 
-`this` in hooks is **`DeriveSignalHookInstance`** (props only). `this` in **`run`** is **`DeriveSignalInstance`** (includes runtime helpers such as HTTP interface methods).
+`this` in hooks is **`DeriveSignalHookInstance`** (props plus static metadata such as `ingress`, but no live `$emit` or HTTP interface methods). `this` in **`run`** is **`DeriveSignalInstance`** (includes runtime helpers such as HTTP interface methods).
 
 ### Draft vs production (`$.isDraft`)
 
