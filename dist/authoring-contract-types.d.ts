@@ -38,6 +38,11 @@ export interface SlotBranchAuthoringContract {
         enabled?: string;
         actions?: string;
         exports?: string;
+        timeoutMs?: string;
+        timeoutHandlerFern?: string;
+        timeoutHandlerMode?: string;
+        timeoutHandlerData?: string;
+        timeoutRecoveryPolicy?: string;
     }>;
     /**
      * Where nested steps attach on each branch row, relative to that row’s object.

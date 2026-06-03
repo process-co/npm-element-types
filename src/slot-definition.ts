@@ -12,6 +12,16 @@ export type ISlotInstanceDefinition = {
   hideOnDisable?: boolean;
   actionsPath?: string;
   exportsPath?: string;
+  /** Milliseconds until the container scope times out (element data path). */
+  timeoutMsPath?: string;
+  /** FERN of the handler to run on timeout (element data path). */
+  timeoutHandlerFernPath?: string;
+  /** Dispatch mode: `execute` | `signal` (element data path). */
+  timeoutHandlerModePath?: string;
+  /** Payload path resolved at fire time (element data path). */
+  timeoutHandlerDataPath?: string;
+  /** Recovery policy: `resurrect` | `drop` (element data path). */
+  timeoutRecoveryPolicyPath?: string;
 };
 
 export type ISlotStaticInstanceDefinition = ISlotInstanceDefinition & {

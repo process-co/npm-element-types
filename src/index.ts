@@ -27,6 +27,19 @@ import type { ConfigureIngressFiltersOptions, IngressFiltersPolicy } from './ing
 export type { ISlotInstanceDefinition, ISlotStaticInstanceDefinition, ISlotDefinition };
 
 export {
+  CONTAINER_RUNTIME_ROUTING_SLUG,
+  containerRuntimeRangeKey,
+} from './container-runtime-routing';
+export type {
+  WorkflowContainerRoutingRef,
+  WorkflowContainerRuntimeRoutingInfo,
+  WorkflowContainerTimeoutHandlerRouting,
+  WorkflowContainerTimeoutRouting,
+  WorkflowTimeoutHandlerMode,
+  WorkflowTimeoutRecoveryPolicy,
+} from './container-runtime-routing';
+
+export {
     builtinActionSlotsRegistry,
     type BuiltinActionSlotsRegistry,
     type BuiltinActionSlotsFern,

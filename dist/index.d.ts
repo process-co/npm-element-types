@@ -60,6 +60,8 @@ import type { ISlotInstanceDefinition, ISlotStaticInstanceDefinition, ISlotDefin
 import { ConfigureResponseCachingOptions } from './http-request-cache';
 import type { ConfigureIngressFiltersOptions, IngressFiltersPolicy } from './ingress-filters';
 export type { ISlotInstanceDefinition, ISlotStaticInstanceDefinition, ISlotDefinition };
+export { CONTAINER_RUNTIME_ROUTING_SLUG, containerRuntimeRangeKey, } from './container-runtime-routing';
+export type { WorkflowContainerRoutingRef, WorkflowContainerRuntimeRoutingInfo, WorkflowContainerTimeoutHandlerRouting, WorkflowContainerTimeoutRouting, WorkflowTimeoutHandlerMode, WorkflowTimeoutRecoveryPolicy, } from './container-runtime-routing';
 export { builtinActionSlotsRegistry, type BuiltinActionSlotsRegistry, type BuiltinActionSlotsFern, type InferBuiltinActionSlots, } from './builtin-action-slots-registry';
 /** Full **`process-element` CLI** JSON shape (types only; materialize in **`@process.co/compatibility`** **`authoring-spec`**). */
 export type { ProcessElementPropCliWire, ProcessElementActionCliWire, ProcessElementSignalCliWire, ProcessElementCliOutputWire, } from './process-element-cli-output';
