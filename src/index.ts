@@ -653,6 +653,10 @@ export interface ProcessRuntimeFernInfo {
     namespaceModifier?: string;
     /** Namespace tag (e.g. `main`); mutually exclusive with `serial`. */
     tag?: string;
+    /** Namespace `@` selector; resolvable tags/versions or bracketed build ids. */
+    namespaceBuildSelector?: string;
+    /** Pre-resolved build run id from `namespace@[buildID]`. */
+    buildRunId?: string;
     /** Numeric namespace serial; mutually exclusive with `tag`. */
     serial?: bigint;
     /** Element type kind: `action` | `signal` | `flow` | `credential` | … */
