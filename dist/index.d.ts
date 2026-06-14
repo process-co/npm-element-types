@@ -59,6 +59,7 @@ export type ElementIcon = {
 import type { ISlotInstanceDefinition, ISlotStaticInstanceDefinition, ISlotDefinition } from './slot-definition';
 import { ConfigureResponseCachingOptions } from './http-request-cache';
 import type { ConfigureIngressFiltersOptions, IngressFiltersPolicy } from './ingress-filters';
+import type { ExecutionTagFn } from './execution-tags';
 export type { ISlotInstanceDefinition, ISlotStaticInstanceDefinition, ISlotDefinition };
 export { CONTAINER_RUNTIME_ROUTING_SLUG, containerRuntimeRangeKey, } from './container-runtime-routing';
 export type { WorkflowContainerRoutingRef, WorkflowContainerRuntimeRoutingInfo, WorkflowContainerTimeoutHandlerRouting, WorkflowContainerTimeoutRouting, WorkflowTimeoutHandlerMode, WorkflowTimeoutRecoveryPolicy, } from './container-runtime-routing';
@@ -67,6 +68,8 @@ export { builtinActionSlotsRegistry, type BuiltinActionSlotsRegistry, type Built
 export type { ProcessElementPropCliWire, ProcessElementActionCliWire, ProcessElementSignalCliWire, ProcessElementCliOutputWire, } from './process-element-cli-output';
 /** Locked authoring catalog **types** + version (runtime materialize: **`@process.co/compatibility`** **`authoring-spec`**). */
 export { ELEMENT_AUTHORING_CONTRACT_VERSION } from './authoring-contract-types';
+export { SOCKET_STATE_TAG, isKnownExecutionTagKey, } from './execution-tags';
+export type { ExecutionTagFn, ExecutionTagValue, ExecutionTags, KnownExecutionTagKey, KnownExecutionTags, SocketStateTagValue, } from './execution-tags';
 export type { AuthoringPropWireKind, AuthoringPropContract, SlotBranchAuthoringContract, SlotsAuthoringContract, ActionAuthoringContract, SignalAuthoringContract, ElementAuthoringCatalogContract, ChildStepsPropertyForBranch, ActionPropKeys, ActionContractByFern, FernAuthoringShardFileV1, } from './authoring-contract-types';
 export { PLATFORM_BOUND_LOADER_TYPE_PREFIXES, isPlatformBoundLoaderType, } from './platform-loader-type';
 export { HTTP_REQUEST_CACHE_POLICY_KEY, REPLAY_BINDING_RANGE, REPLAY_META_RANGE, type BodyVaryProjection, type CacheVaryInfoWire, type ConfigureResponseCachingOptions, type DurationWire, type HttpRequestCacheMode, type HttpRequestCachePolicy, type HttpRequestCacheVary, } from './http-request-cache';
@@ -150,6 +153,13 @@ export type HttpInterfaceSchemaWire = {
  */
 export type SignalRunHostServices = {
     export: (category: string, message: string) => void | Promise<void>;
+    /**
+     * Attach a {@link ExecutionTagFn tag} to the current execution for UI
+     * display (execution-history badges). Known keys (e.g. `socket.state`) are
+     * value-typed; any other key accepts a free string for element-defined
+     * annotations. Tags are orthogonal to the run lifecycle status.
+     */
+    tag: ExecutionTagFn;
     $transitionToSlot: (slots: Array<SlotTransitionDefinition>) => void | Promise<void>;
     /**
      * When `inputSchema.validation` is set, runs the published **full Zod** validator for that
@@ -542,6 +552,13 @@ export interface FlowControlExtensions {
 }
 export interface ProcessFunctions {
     export: (key: string, value: JSONValue) => void;
+    /**
+     * Attach a {@link ExecutionTagFn tag} to the current execution for UI
+     * display (execution-history badges). Known keys (e.g. `socket.state`) are
+     * value-typed; any other key accepts a free string for element-defined
+     * annotations. Tags are orthogonal to the run lifecycle status.
+     */
+    tag: ExecutionTagFn;
     send: SendFunctionsWrapper;
     /**
      * Respond to an HTTP interface.

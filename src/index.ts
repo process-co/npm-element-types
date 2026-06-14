@@ -23,6 +23,7 @@ import type {
 } from './slot-definition';
 import { ConfigureResponseCachingOptions } from './http-request-cache';
 import type { ConfigureIngressFiltersOptions, IngressFiltersPolicy } from './ingress-filters';
+import type { ExecutionTagFn } from './execution-tags';
 
 export type { ISlotInstanceDefinition, ISlotStaticInstanceDefinition, ISlotDefinition };
 
@@ -56,6 +57,19 @@ export type {
 
 /** Locked authoring catalog **types** + version (runtime materialize: **`@process.co/compatibility`** **`authoring-spec`**). */
 export { ELEMENT_AUTHORING_CONTRACT_VERSION } from './authoring-contract-types';
+
+export {
+  SOCKET_STATE_TAG,
+  isKnownExecutionTagKey,
+} from './execution-tags';
+export type {
+  ExecutionTagFn,
+  ExecutionTagValue,
+  ExecutionTags,
+  KnownExecutionTagKey,
+  KnownExecutionTags,
+  SocketStateTagValue,
+} from './execution-tags';
 export type {
     AuthoringPropWireKind,
     AuthoringPropContract,
@@ -200,6 +214,14 @@ export type HttpInterfaceSchemaWire = {
  */
 export type SignalRunHostServices = {
     export: (category: string, message: string) => void | Promise<void>;
+
+    /**
+     * Attach a {@link ExecutionTagFn tag} to the current execution for UI
+     * display (execution-history badges). Known keys (e.g. `socket.state`) are
+     * value-typed; any other key accepts a free string for element-defined
+     * annotations. Tags are orthogonal to the run lifecycle status.
+     */
+    tag: ExecutionTagFn;
 
     $transitionToSlot: (slots: Array<SlotTransitionDefinition>) => void | Promise<void>;
 
@@ -737,6 +759,14 @@ export interface FlowControlExtensions {
 export interface ProcessFunctions {
 
     export: (key: string, value: JSONValue) => void;
+
+    /**
+     * Attach a {@link ExecutionTagFn tag} to the current execution for UI
+     * display (execution-history badges). Known keys (e.g. `socket.state`) are
+     * value-typed; any other key accepts a free string for element-defined
+     * annotations. Tags are orthogonal to the run lifecycle status.
+     */
+    tag: ExecutionTagFn;
 
     send: SendFunctionsWrapper;
 
