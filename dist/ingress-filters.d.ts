@@ -90,12 +90,22 @@ export type IngressValidateZodFilter = {
     config: {
         /** Stable identity for the registered Zod schema. Required. */
         schemaBuildId: string;
+        /** Optional S3 key for the edge-compatible validator artifact. */
+        artifactKey?: string;
+        /** Legacy/current S3 key for the compiled validator module. */
+        compiledValidatorKey?: string;
         /** Optional friendly name used in error messages. */
         schemaName?: string;
         eventData?: 'full' | 'body';
         responseType?: 'OK' | 'NO_CONTENT' | 'STATIC' | 'CUSTOM' | string;
         /** Continue the chain when the validate endpoint cannot be reached. */
         failOpen?: boolean;
+        /**
+         * Compile-time hint for how the edge should run this validator:
+         * `inline` (embedded QuickJS/Zod) or `sidecar` (trusted-tier endpoint).
+         * Absent ⇒ edge uses its deployment default (inline, sidecar fallback).
+         */
+        validatorBackend?: 'inline' | 'sidecar';
     };
 };
 /**

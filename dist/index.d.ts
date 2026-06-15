@@ -123,14 +123,37 @@ export type HttpInterfaceSchemaWire = {
     /**
      * When true, `enforceSchema` runs the **compiled** default-export Zod schema for this interface
      * (full parse/transform/refine), not a lightweight check of `exportSchema` alone.
+     *
+     * Legacy switch. Prefer {@link HttpInterfaceSchemaWire.validationLevel}; this boolean is kept
+     * for back-compat and is treated as `validation === true ⇔ validationLevel === 'full'`.
      */
     validation?: boolean;
+    /**
+     * Tiered inbound validation policy authored per signal:
+     *
+     * - `'typing'` — design-time only (editor type inference); **no runtime validation** (UI label: `SKIP`).
+     * - `'basic'` — structural JSON Schema validation derived from the Zod schema, no coercion (UI label: `VALIDATE`).
+     * - `'full'` — full compiled Zod `safeParse` (transforms/refine/coerce) (UI label: `FULL VALIDATE`).
+     *
+     * Back-compat: when absent, derive from {@link HttpInterfaceSchemaWire.validation}
+     * (`true → 'full'`, otherwise `'typing'`).
+     */
+    validationLevel?: 'typing' | 'basic' | 'full';
     exportSchema?: Record<string, JSONValue>;
     exportSchemaZodex?: Record<string, JSONValue>;
     exportSchemaSource?: string;
     exportSchemaKey?: string | null;
     /** S3 object key (element-registry bucket) for compiled ESM whose default export is the Zod schema used at runtime. */
     compiledValidatorKey?: string | null;
+    /** S3 object key (element-registry bucket) for the Go edge QuickJS validator unit. */
+    edgeValidatorKey?: string | null;
+    /**
+     * Compile-time decision for how the Go edge runs `full` Zod validation for this
+     * schema: `inline` (embedded QuickJS) or `sidecar` (trusted-tier endpoint).
+     * Derived by a cheap heuristic at compile time; the edge keeps a runtime
+     * sidecar fallback regardless. Absent ⇒ edge deployment default applies.
+     */
+    validatorBackend?: 'inline' | 'sidecar' | null;
     /**
      * Client-issued token stored with the interface schema blob; included in validator artifact paths
      * so successive saves and draft/live rows do not share one S3 prefix unless intended.
