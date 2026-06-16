@@ -115,11 +115,29 @@ export {
     type IngressHttpNewRequestsFilter,
     type IngressJSONPathMetaFilter,
     type IngressRespondThenEmitFilter,
+    type IngressValidateSchemaFilter,
     type IngressValidateJSONSchemaFilter,
     type IngressValidateZodFilter,
     type IngressVerifyAuthFilter,
     type IngressVerifyAuthKind,
 } from './ingress-filters';
+
+export {
+    computeSchemaSourceHash,
+    deriveEdgeValidatorKey,
+    ingressValidationLevelFromSchema,
+    materializeIngressFilterChain,
+    materializeValidationFilter,
+    primaryIngressInputSchema,
+    resolveIngressInputSchemas,
+    resolveIngressInputSchemasFromElementData,
+    resolveValidateSchemaKey,
+    schemaArtifactsFresh,
+    schemaKeyFromPropertyDescriptor,
+    IngressValidateSchemaResolutionError,
+    type IngressInputSchemaWire,
+    type IngressValidationLevel,
+} from './ingress-schema-materialize';
 
 // Base types for module definitions
 export type ModuleDefinition = {
@@ -210,8 +228,8 @@ export type HttpInterfaceSchemaWire = {
     /**
      * Compile-time decision for how the Go edge runs `full` Zod validation for this
      * schema: `inline` (embedded QuickJS) or `sidecar` (trusted-tier endpoint).
-     * Derived by a cheap heuristic at compile time; the edge keeps a runtime
-     * sidecar fallback regardless. Absent ⇒ edge deployment default applies.
+     * Derived by a cheap heuristic at compile time. Absent ⇒ edge deployment
+     * default applies (`inline`); sidecar routing is opt-in.
      */
     validatorBackend?: 'inline' | 'sidecar' | null;
     /**
@@ -219,6 +237,8 @@ export type HttpInterfaceSchemaWire = {
      * so successive saves and draft/live rows do not share one S3 prefix unless intended.
      */
     schemaBuildKey?: string;
+    /** Hash of {@link exportSchemaSource} at last successful compile; gates publish-time recompile. */
+    sourceHash?: string | null;
     /**
      * When set, the API may coerce **string** leaf values to number / boolean / bigint / Date **only
      * where the compiled Zod schema expects those types** (schema-guided), before `safeParse`.

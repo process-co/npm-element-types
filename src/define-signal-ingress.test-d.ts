@@ -18,6 +18,11 @@ const _staticIngressSignal = defineSignal({
                     simpleToken: 'token',
                 },
             },
+            // Simple author-facing validation reference, materialized at
+            // save/publish from the named `$.interface.schema` property.
+            { type: 'validate_schema', schema: 'inputSchema' },
+            // schema may be omitted when the element has exactly one schema property.
+            { type: 'validate_schema' },
             { type: 'http_new_requests' },
         ],
     },

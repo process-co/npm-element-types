@@ -69,21 +69,33 @@ export type IngressValidateJSONSchemaFilter = {
         schema: Record<string, unknown>;
         eventData?: 'full' | 'body';
         responseType?: 'OK' | 'NO_CONTENT' | 'STATIC' | 'CUSTOM' | string;
+        /** Auto-coerce string leaf values for form-like requests by default. */
+        coerceLeafPrimitives?: boolean | 'auto';
     };
 };
 /**
- * Validate the inbound payload against a Zod schema hosted on Node.
+ * Author-facing validation reference. Names a `$.interface.schema` property by
+ * key (or its `typeOptions.schemaPropertyKey` override). Required when the
+ * element has more than one schema property; optional when exactly one exists.
  *
- * The Go edge cannot evaluate Zod schemas natively (they are TypeScript
- * runtime objects, not data), so this filter delegates to a Node
- * "validate" microservice at `_internal/zod-validate/:schemaBuildId`.
- * The schema is registered against `schemaBuildId` at element publish
- * time; the edge calls it as a sidecar and reads back a structured
- * result. Aligns with the envoy-style filter chain so we keep full Zod
- * validation on the edge without porting the engine to Go.
+ * Always validates the request body. Materialized at save/publish into
+ * `validate_json_schema` or `validate_zod` using that property's compiled
+ * artifacts and validation level.
+ */
+export type IngressValidateSchemaFilter = {
+    type: 'validate_schema';
+    /** Interface schema property key. Omit when the element has exactly one. */
+    schema?: string;
+};
+/**
+ * Validate the inbound payload against a Zod schema before emit.
  *
- * `failOpen=true` lets the chain continue when the validate endpoint is
- * unreachable. Default is `false` (reject with 502 on outage).
+ * The Go edge runs this inline with its embedded QuickJS/Zod engine by default
+ * using `artifactKey` (the edge-compatible validator artifact). A trusted-tier
+ * sidecar is used only when `validatorBackend` is explicitly set to `sidecar`.
+ *
+ * `failOpen=true` lets the chain continue when validation is operationally
+ * unavailable. Default is `false` (reject with 502 on outage).
  */
 export type IngressValidateZodFilter = {
     type: 'validate_zod';
@@ -103,7 +115,7 @@ export type IngressValidateZodFilter = {
         /**
          * Compile-time hint for how the edge should run this validator:
          * `inline` (embedded QuickJS/Zod) or `sidecar` (trusted-tier endpoint).
-         * Absent ⇒ edge uses its deployment default (inline, sidecar fallback).
+         * Absent ⇒ edge uses its deployment default (inline).
          */
         validatorBackend?: 'inline' | 'sidecar';
     };
@@ -171,7 +183,7 @@ export type IngressJSONPathMetaFilter = {
  * must be added here AND registered on the Go edge — `validate-ingress-filters`
  * rejects unknown types at publish time.
  */
-export type IngressFilterDescriptor = IngressVerifyAuthFilter | IngressValidateJSONSchemaFilter | IngressValidateZodFilter | IngressEmitFilter | IngressHttpNewRequestsFilter | IngressRespondThenEmitFilter | IngressHMACVerifyFilter | IngressChallengeResponseFilter | IngressJSONPathMetaFilter;
+export type IngressFilterDescriptor = IngressVerifyAuthFilter | IngressValidateSchemaFilter | IngressValidateJSONSchemaFilter | IngressValidateZodFilter | IngressEmitFilter | IngressHttpNewRequestsFilter | IngressRespondThenEmitFilter | IngressHMACVerifyFilter | IngressChallengeResponseFilter | IngressJSONPathMetaFilter;
 /** Save-only override: hooks.save → `$.http.configureIngressFilters`. */
 export type ConfigureIngressFiltersOptions = {
     filters: IngressFilterDescriptor[];
