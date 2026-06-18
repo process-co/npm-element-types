@@ -16,6 +16,8 @@ export type IngressInputSchemaWire = {
     validation?: unknown;
     validationLevel?: unknown;
     exportSchema?: unknown;
+    exportSchemaZodex?: unknown;
+    exportSchemaKey?: unknown;
     exportSchemaSource?: unknown;
     schemaBuildKey?: unknown;
     edgeValidatorKey?: unknown;
@@ -123,10 +125,20 @@ export function schemaArtifactsFresh(blob: IngressInputSchemaWire | undefined): 
     if (!source) return false;
     const storedHash = typeof blob.sourceHash === 'string' ? blob.sourceHash.trim() : '';
     if (!storedHash || storedHash !== computeSchemaSourceHash(source)) return false;
+
     const hasCompiled =
         (typeof blob.compiledValidatorKey === 'string' && blob.compiledValidatorKey.trim().length > 0)
         || (typeof blob.edgeValidatorKey === 'string' && blob.edgeValidatorKey.trim().length > 0);
-    const hasJsonSchema = blob.exportSchema != null && typeof blob.exportSchema === 'object' && !Array.isArray(blob.exportSchema);
+    const hasJsonSchema =
+        blob.exportSchema != null && typeof blob.exportSchema === 'object' && !Array.isArray(blob.exportSchema);
+
+    const level = ingressValidationLevelFromSchema(blob);
+    if (level === 'full') {
+        return hasCompiled;
+    }
+    if (level === 'basic') {
+        return hasJsonSchema;
+    }
     return hasCompiled || hasJsonSchema;
 }
 

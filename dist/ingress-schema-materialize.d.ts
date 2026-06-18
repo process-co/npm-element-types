@@ -10,6 +10,8 @@ export type IngressInputSchemaWire = {
     validation?: unknown;
     validationLevel?: unknown;
     exportSchema?: unknown;
+    exportSchemaZodex?: unknown;
+    exportSchemaKey?: unknown;
     exportSchemaSource?: unknown;
     schemaBuildKey?: unknown;
     edgeValidatorKey?: unknown;
