@@ -173,6 +173,123 @@ export type HttpInterfaceSchemaWire = {
      */
     coerceLeafPrimitives?: boolean | 'auto';
 };
+export type TableQueryInput = {
+    filter?: unknown;
+    sort?: unknown;
+    cursor?: string;
+    limit?: number;
+};
+export type TableRowWriteInput = {
+    value?: string;
+    groupId?: string;
+    parentRowId?: string;
+    columns?: Record<string, unknown>;
+    rank?: string;
+};
+export type TableCapabilities = {
+    read: boolean;
+    write: boolean;
+    sync: boolean;
+};
+export type TableAdapterCapabilities = {
+    pushdownFilter: 'none' | 'partial' | 'full';
+    pushdownSort: 'none' | 'partial' | 'full';
+    pushdownPage: 'none' | 'partial' | 'full';
+    filterFields?: string[];
+    filterOperators?: string[];
+    sortFields?: string[];
+    sortColumnFields?: boolean;
+    sortNulls?: 'natural' | 'explicit';
+    write: boolean;
+    sync: boolean;
+    maxPageSize?: number;
+};
+export type TableDatasetDiscoveryItem = {
+    datasetId: string;
+    name: string;
+    project: {
+        id: string;
+        name: string;
+    };
+    storageMode: string;
+    sourceType: string;
+    schemaVersion: number;
+    updatedAt: string;
+    capabilities: TableCapabilities;
+};
+export type TableDatasetDiscoveryResponse = {
+    v: 1;
+    datasets: TableDatasetDiscoveryItem[];
+};
+export type TableRow<TColumns extends Record<string, unknown> = Record<string, unknown>> = {
+    rowId: string;
+    datasetId: string;
+    parentRowId?: string;
+    groupId?: string;
+    rank?: string;
+    value?: string;
+    columns?: TColumns;
+    createdAt: string;
+    updatedAt: string;
+    userId?: string;
+};
+export type TableQueryResponse<TColumns extends Record<string, unknown> = Record<string, unknown>> = {
+    rows: Array<TableRow<TColumns>>;
+    nextCursor?: string;
+    total?: number;
+};
+export type TableDatasetResponse = {
+    datasetId: string;
+    storageMode: string;
+    capabilities: TableAdapterCapabilities;
+    binding: {
+        datasetId: string;
+        storageMode: string;
+        sourceType?: string;
+        schemaVersion?: number;
+    };
+};
+export type TableLayoutResponse<TColumns extends Record<string, unknown> = Record<string, unknown>> = {
+    datasetId: string;
+    storageMode: string;
+    rows?: Array<TableRow<TColumns>>;
+    nextCursor?: string;
+    schemaVersion?: number;
+    columns?: unknown[];
+    groups?: Array<{
+        groupId: string;
+        count: number;
+    }>;
+    capabilities?: Record<string, unknown>;
+};
+/**
+ * Logical Table v2 operations authorized by the current execution capability.
+ * No user token, external credential, or physical routing is exposed.
+ */
+export interface TableRunHostServices {
+    listDatasets(): Promise<TableDatasetDiscoveryResponse>;
+    getDataset(datasetId: string): Promise<TableDatasetResponse>;
+    getLayout<TColumns extends Record<string, unknown> = Record<string, unknown>>(datasetId: string, options?: {
+        filter?: unknown;
+        includeArchived?: boolean;
+    }): Promise<TableLayoutResponse<TColumns>>;
+    queryRows<TColumns extends Record<string, unknown> = Record<string, unknown>>(datasetId: string, input: TableQueryInput): Promise<TableQueryResponse<TColumns>>;
+    getRow<TColumns extends Record<string, unknown> = Record<string, unknown>>(datasetId: string, rowId: string): Promise<TableRow<TColumns>>;
+    insertRow<TColumns extends Record<string, unknown> = Record<string, unknown>>(datasetId: string, input: TableRowWriteInput): Promise<TableRow<TColumns>>;
+    patchRow<TColumns extends Record<string, unknown> = Record<string, unknown>>(datasetId: string, rowId: string, input: TableRowWriteInput): Promise<TableRow<TColumns>>;
+    deleteRow(datasetId: string, rowId: string): Promise<{
+        rowId: string;
+        deleted: boolean;
+    }>;
+    moveRows(datasetId: string, input: {
+        rowIds: string[];
+        targetGroupId?: string;
+        targetParentRowId?: string;
+        afterRowId?: string;
+    }): Promise<{
+        rows: TableRow[];
+    }>;
+}
 /**
  * Host `params.$` during signal **`run`** (live webhook / test execution).
  * Not passed to `hooks.save` — use {@link SignalSaveHookHostServices} there.
@@ -204,6 +321,8 @@ export type SignalRunHostServices = {
      * See {@link ProcessRuntimeContext}.
      */
     runtime?: ProcessRuntimeContext;
+    /** Logical Process Table access scoped to this execution. */
+    table: TableRunHostServices;
 };
 /** @deprecated Use {@link SignalRunHostServices} for `run`; hook `$` types are separate. */
 export type SignalHostServices = SignalRunHostServices;
@@ -585,6 +704,8 @@ export interface ProcessFunctions {
      * annotations. Tags are orthogonal to the run lifecycle status.
      */
     tag: ExecutionTagFn;
+    /** Logical Process Table access scoped to this execution. */
+    table: TableRunHostServices;
     send: SendFunctionsWrapper;
     /**
      * Respond to an HTTP interface.

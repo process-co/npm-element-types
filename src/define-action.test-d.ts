@@ -30,6 +30,16 @@ const _action = defineAction({
             void steps;
             $.export('out', {});
             void $.flow;
+            const datasets = await $.table.listDatasets();
+            void datasets.datasets[0]?.capabilities.read;
+            const page = await $.table.queryRows<{ total: number }>('dataset-1', {
+                limit: 10,
+            });
+            void page.rows[0]?.columns?.total;
+            const inserted = await $.table.insertRow('dataset-1', {
+                value: 'created by element',
+            });
+            void inserted.rowId;
             this.label;
             this.http.httpRequest.execute;
         },
