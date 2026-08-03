@@ -4,6 +4,7 @@
 import {
     defineSignal,
     type DeriveSignalInstance,
+    type SignalReentryOptions,
     type SignalRunHostServices,
     type SignalSaveHostParameters,
 } from './index';
@@ -43,9 +44,20 @@ const _webhook = defineSignal({
         async run({ $, event }) {
             void event;
             $.enforceSchema;
+            const continuation = await $.continuation('onRetry', {
+                ttlSeconds: 300,
+                mode: 'continue',
+            });
+            continuation.urlFor({ channel: 'sms' });
             // @ts-expect-error — save-only host `$` is not available in run
             $.http;
             await this.httpInterface.deferHttpResponse(30_000);
+        },
+    },
+    reentry: {
+        async onRetry({ $, input }: SignalReentryOptions<{ attempt: number }>) {
+            $.export('retry-attempt', String(input.attempt));
+            this.cacheMaxAge;
         },
     },
 });
@@ -63,6 +75,10 @@ type _assertRunOnThis = typeof _webhook.methods.run extends DeriveSignalInstance
     ? true
     : false;
 const _runOnThisCheck: _assertRunOnThis = true;
+type _retryParams = Parameters<typeof _webhook.reentry.onRetry>[0];
+type _retryInput = _retryParams['input'];
+type _assertRetryInput = _retryInput extends { attempt: number } ? true : false;
+const _retryInputCheck: _assertRetryInput = true;
 
 /** @deprecated top-level `run` — still accepted for older elements. */
 const _legacyTopLevelRun = defineSignal({

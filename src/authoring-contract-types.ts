@@ -1,3 +1,5 @@
+import type { SlotControlDefinition } from './slot-control-definition';
+
 /**
  * Locked authoring contract **types only** (published for partners).
  * Runtime: **`@process.co/compatibility`** **`authoring-spec`** — **`authoringCatalogContractFromCliOutput`**, **`materializeAuthoringCatalogFromCliOutput`**, etc.
@@ -7,7 +9,7 @@
  * Bump when this contract changes — regenerate **`@process.co/elements`** **`generate:authoring`** and other codegen consumers.
  * Raw CLI JSON does not carry this; the **contract** is the stable TS surface.
  */
-export const ELEMENT_AUTHORING_CONTRACT_VERSION = 1 as const;
+export const ELEMENT_AUTHORING_CONTRACT_VERSION = 2 as const;
 
 /**
  * Normalized prop kind for **`keyof` / conditional types** (not the raw loader string).
@@ -65,6 +67,7 @@ export interface SlotBranchAuthoringContract {
 }
 
 export interface SlotsAuthoringContract {
+  readonly control?: SlotControlDefinition;
   readonly layout: Readonly<{
     showBranchLabels?: boolean;
     activeSlotId?: string;

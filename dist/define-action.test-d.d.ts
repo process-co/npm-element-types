@@ -1,7 +1,7 @@
 /**
  * Compile-only checks for defineAction (not emitted).
  */
-import { type ActionRunOptions } from './index';
+import { type ActionReentryOptions, type ActionRunOptions } from './index';
 declare const _action: {
     readonly type: "action";
     readonly key: "test-action";
@@ -23,7 +23,13 @@ declare const _action: {
         };
     };
     readonly methods: {
-        readonly run: ({ $, steps }: ActionRunOptions<import("./index").ProcessFunctions>) => Promise<void>;
+        readonly run: ({ $, steps }: ActionRunOptions<import("./index").ProcessFunctions<string>>) => Promise<void>;
+    };
+    readonly reentry: {
+        readonly onApproval: ({ $, input }: ActionReentryOptions<{
+            approvedBy: string;
+        }>) => Promise<void>;
+        readonly onUnspecifiedPayload: ({ $, input }: ActionReentryOptions<unknown, import("./index").ProcessFunctions<string>>) => Promise<void>;
     };
 };
 export type _actionType = typeof _action;

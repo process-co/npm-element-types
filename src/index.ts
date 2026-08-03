@@ -24,8 +24,32 @@ import type {
 import { ConfigureResponseCachingOptions } from './http-request-cache';
 import type { ConfigureIngressFiltersOptions, IngressFiltersPolicy } from './ingress-filters';
 import type { ExecutionTagFn } from './execution-tags';
+import type { PropVisibilityDefinition } from './property-visibility';
 
 export type { ISlotInstanceDefinition, ISlotStaticInstanceDefinition, ISlotDefinition };
+export { evaluatePropVisibility } from './property-visibility';
+export type { PropVisibilityCondition, PropVisibilityDefinition } from './property-visibility';
+export type {
+  SlotCompletionMode,
+  SlotCompletionErrorPolicy,
+  SlotCompletionDefinition,
+  SlotControlExecutionDefinition,
+  SlotControlSurfaceNodeDefinition,
+  SlotControlSurfaceBadgeDefinition,
+  SlotControlSurfaceControlDefinition,
+  SlotControlSurfaceDefinition,
+  SlotControlResultDefinition,
+  SlotControlDefinition,
+} from './slot-control-definition';
+export type {
+  ObjectProjectionValueType,
+  ObjectProjectionStrategy,
+  ObjectProjectionWritePolicy,
+  ObjectProjectionTargetCoverage,
+  ObjectProjectionSource,
+  ObjectProjectionRule,
+  ObjectProjectionDocument,
+} from './object-projection';
 
 export {
   CONTAINER_RUNTIME_ROUTING_SLUG,
@@ -63,6 +87,8 @@ export {
   isKnownExecutionTagKey,
 } from './execution-tags';
 export type {
+  AuthorExecutionTags,
+  DeclaredExecutionTagFn,
   ExecutionTagFn,
   ExecutionTagValue,
   ExecutionTags,
@@ -251,6 +277,66 @@ export type HttpInterfaceSchemaWire = {
     coerceLeafPrimitives?: boolean | 'auto';
 };
 
+function schemaPersistenceKeyFromPropInfo(propInfo: {
+    key?: string;
+    typeOptions?: Record<string, unknown>;
+}): string | undefined {
+    const raw = propInfo.typeOptions?.schemaPropertyKey;
+    if (typeof raw === 'string' && raw.trim().length > 0) return raw.trim();
+    const key = propInfo.key;
+    return typeof key === 'string' && key.length > 0 ? key : undefined;
+}
+
+function validationPersistenceKeyFromPropInfo(propInfo: {
+    typeOptions?: Record<string, unknown>;
+}): string | undefined {
+    const raw = propInfo.typeOptions?.validationPropertyKey;
+    return typeof raw === 'string' && raw.trim().length > 0 ? raw.trim() : undefined;
+}
+
+/**
+ * Resolves the persisted schema wire for the first `$.interface.schema`
+ * property on an element instance. This is shared by every signal runtime so
+ * editor, Node-transition, and element-host invocations cannot drift on which
+ * authored validation policy is active.
+ */
+export function resolveHttpInterfaceEmitWireFromAppData(
+    app: Record<string, unknown> | null | undefined,
+    data: unknown,
+): HttpInterfaceSchemaWire | undefined {
+    if (!app || typeof app !== 'object' || !data || typeof data !== 'object' || Array.isArray(data)) {
+        return undefined;
+    }
+    const instanceData = data as Record<string, unknown>;
+
+    for (const metaKey of Object.keys(app)) {
+        if (!metaKey.startsWith('&PROC&__')) continue;
+        const propInfo = app[metaKey];
+        if (!propInfo || typeof propInfo !== 'object') continue;
+        const propRecord = propInfo as Record<string, unknown>;
+        if (propRecord.type !== '$.interface.schema') continue;
+
+        const schemaKey = schemaPersistenceKeyFromPropInfo(
+            propRecord as { key?: string; typeOptions?: Record<string, unknown> },
+        );
+        if (!schemaKey) continue;
+        const blob = instanceData[schemaKey];
+        if (!blob || typeof blob !== 'object' || Array.isArray(blob)) continue;
+
+        const wire: HttpInterfaceSchemaWire = { ...(blob as HttpInterfaceSchemaWire) };
+        const validationKey = validationPersistenceKeyFromPropInfo(
+            propRecord as { typeOptions?: Record<string, unknown> },
+        );
+        if (validationKey && Object.prototype.hasOwnProperty.call(instanceData, validationKey)) {
+            const validation = instanceData[validationKey];
+            if (typeof validation === 'boolean') wire.validation = validation;
+        }
+        return wire;
+    }
+
+    return undefined;
+}
+
 export type TableQueryInput = {
     filter?: unknown;
     sort?: unknown;
@@ -404,14 +490,14 @@ export interface TableRunHostServices {
  * Host `params.$` during signal **`run`** (live webhook / test execution).
  * Not passed to `hooks.save` — use {@link SignalSaveHookHostServices} there.
  */
-export type SignalRunHostServices = {
+export interface SignalRunHostServices<ReentryName extends string = string> {
     export: (category: string, message: string) => void | Promise<void>;
 
     /**
      * Attach a {@link ExecutionTagFn tag} to the current execution for UI
-     * display (execution-history badges). Known keys (e.g. `socket.state`) are
-     * value-typed; any other key accepts a free string for element-defined
-     * annotations. Tags are orthogonal to the run lifecycle status.
+     * display (execution-history badges). Reserved system keys are rejected;
+     * author annotations may be free-form or narrowed with `tag.typed<T>()`.
+     * Tags are orthogonal to the run lifecycle status.
      */
     tag: ExecutionTagFn;
 
@@ -442,7 +528,19 @@ export type SignalRunHostServices = {
 
     /** Logical Process Table access scoped to this execution. */
     table: TableRunHostServices;
-};
+
+    /** Mint a branded, one-shot callback into a declared `reentry` method. */
+    continuation(
+        namedMethod: ReentryName,
+        options?: WorkflowContinuationOptions,
+    ): Promise<WorkflowContinuationHandle>;
+
+    /** @deprecated Prefer {@link SignalRunHostServices.continuation}. */
+    getRunKey(
+        namedMethod: ReentryName,
+        options?: WorkflowContinuationOptions,
+    ): Promise<WorkflowContinuationHandle>;
+}
 
 /** @deprecated Use {@link SignalRunHostServices} for `run`; hook `$` types are separate. */
 export type SignalHostServices = SignalRunHostServices;
@@ -534,8 +632,8 @@ export type EnforceSchemaResult<T extends unknown = unknown> =
  */
 export const PROCESS_CO_ENFORCE_SCHEMA_HOST_PAYLOAD_MARKER = 'enforceSchema' as const;
 
-export type SignalRunOptions = {
-    $: SignalRunHostServices;
+export type SignalRunOptions<Host extends SignalRunHostServices = SignalRunHostServices> = {
+    $: Host;
     event: SignalEventShape;
 };
 
@@ -943,6 +1041,38 @@ export interface ProcessInternalFunctions extends ProcessFunctions {
     runtime: ProcessRuntimeContext;
 }
 
+export type WorkflowContinuationURLOptions = {
+    path?: string;
+    redirect?: string;
+    channel?: string;
+};
+
+export type WorkflowContinuationOptions = WorkflowContinuationURLOptions & {
+    /**
+     * Callback deadline. Defaults to 15 minutes; edge clamps values to
+     * 30 seconds..24 hours. If the one-shot URL has not won by then, the same
+     * declared re-entry method receives a {@link WorkflowContinuationTimeoutSignal}.
+     */
+    ttlSeconds?: number;
+    /** Continue the context by default, or explicitly resume the recorded frame. */
+    mode?: 'resume' | 'continue';
+};
+
+export type WorkflowContinuationTimeoutSignal = {
+    type: 'continuation.timeout';
+    /** UTC RFC 3339 timestamp of the deadline that won the one-shot race. */
+    deadlineAt: string;
+};
+
+export type WorkflowContinuationHandle = {
+    /** Branded, host-bound URL using the options supplied while minting. */
+    url: string;
+    /** Opaque one-shot token; prefer {@link WorkflowContinuationHandle.url}. */
+    key: string;
+    /** Materialize another path/channel/redirect form for the same one-shot key. */
+    urlFor(options?: WorkflowContinuationURLOptions): string;
+};
+
 export interface FlowControlExtensions {
     $$innerSlots?: Record<string, string>;
     $$event?: 'slotCompletionEvent' | 'slotIterationEvent';
@@ -951,20 +1081,32 @@ export interface FlowControlExtensions {
     // /$transitionToSlot(slotId: string): void;
 }
 
-export interface ProcessFunctions {
+export interface ProcessFunctions<ReentryName extends string = string> {
 
     export: (key: string, value: JSONValue) => void;
 
     /**
      * Attach a {@link ExecutionTagFn tag} to the current execution for UI
-     * display (execution-history badges). Known keys (e.g. `socket.state`) are
-     * value-typed; any other key accepts a free string for element-defined
-     * annotations. Tags are orthogonal to the run lifecycle status.
+     * display (execution-history badges). Reserved system keys are rejected;
+     * author annotations may be free-form or narrowed with `tag.typed<T>()`.
+     * Tags are orthogonal to the run lifecycle status.
      */
     tag: ExecutionTagFn;
 
     /** Logical Process Table access scoped to this execution. */
     table: TableRunHostServices;
+
+    /** Mint a branded, one-shot callback into a declared `reentry` method. */
+    continuation(
+        namedMethod: ReentryName,
+        options?: WorkflowContinuationOptions,
+    ): Promise<WorkflowContinuationHandle>;
+
+    /** @deprecated Prefer {@link ProcessFunctions.continuation}. */
+    getRunKey(
+        namedMethod: ReentryName,
+        options?: WorkflowContinuationOptions,
+    ): Promise<WorkflowContinuationHandle>;
 
     send: SendFunctionsWrapper;
 
@@ -1086,7 +1228,7 @@ type BasePropDefinition = {
     options?: readonly { label?: string; value: unknown }[];
     ui?: any;
     default?: any;
-    visibleWhen?: any;
+    visibleWhen?: PropVisibilityDefinition;
 };
 
 type PropDefinitionInput<TType = unknown> = BasePropDefinition & {
@@ -1305,7 +1447,9 @@ type SignalInstanceExcludedKeys =
     | 'propDefinitions'
     | 'methods'
     | 'run'
-    | 'hooks';
+    | 'hooks'
+    | 'reentry'
+    | 'interfaceSubscriptions';
 
 /** Prop names on `T` that are `$.interface.http` (excluded from hook `this`). */
 type HttpInterfacePropKeys<T> =
@@ -1339,6 +1483,8 @@ type ActionInstanceExcludedKeys =
     | 'propDefinitions'
     | 'methods'
     | 'run'
+    | 'reentry'
+    | 'interfaceSubscriptions'
     | 'type'
     | 'name'
     | 'description'
@@ -1385,6 +1531,8 @@ export interface Action<P extends Record<string, any> = Record<string, any>> ext
     type: "action";
     props: P;
     run: (this: DeriveActionInstance<Action<P>>, params: ActionRunOptions) => Promise<unknown>;
+    reentry?: ActionReentryDefinition<Action<P>>;
+    interfaceSubscriptions?: ActionInterfaceSubscriptionsDefinition<Action<P>>;
 }
 
 export interface Signal<P extends Record<string, any> = Record<string, any>> {
@@ -1399,6 +1547,8 @@ export interface Signal<P extends Record<string, any> = Record<string, any>> {
      */
     run?: (this: DeriveSignalInstance<Signal<P>>, params: SignalRunOptions) => Promise<unknown>;
     hooks?: SignalHooksDefinition<Signal<P>>;
+    reentry?: SignalReentryDefinition<Signal<P>>;
+    interfaceSubscriptions?: SignalInterfaceSubscriptionsDefinition<Signal<P>>;
 }
 
 type SignalRun<T> = (this: DeriveSignalInstance<T>, params: SignalRunOptions) => Promise<unknown>;
@@ -1440,6 +1590,136 @@ export function defineApp<const T extends object>(app: T & ThisType<DeriveAppIns
 
 export type ActionRunFn = (params: ActionRunOptions) => void | Promise<unknown>;
 
+/** Host and author-declared callback payload passed to an action re-entry method. */
+export type ActionReentryOptions<
+    Input = unknown,
+    Host extends ProcessFunctions = ProcessFunctions,
+> = {
+    $: Host;
+    input: Input;
+};
+
+/** One author-declared action continuation callback. */
+export type ActionReentryMethod<T, Input = unknown> = (
+    this: DeriveActionInstance<T>,
+    params: ActionReentryOptions<Input>,
+) => void | Promise<unknown>;
+
+/** Dedicated named continuation callbacks on an action definition. */
+export type ActionReentryDefinition<T> = Record<string, ActionReentryMethod<T, any>>;
+
+type ActionReentryContextualMethod = {
+    bivarianceHack(params: ActionReentryOptions): void | Promise<unknown>;
+}['bivarianceHack'];
+
+/** Contextual re-entry bag used by {@link defineAction}. */
+export type ActionReentryWithThis<T> = Record<string, ActionReentryContextualMethod> &
+    ThisType<DeriveActionInstance<T>>;
+
+/**
+ * Typed payload registry for events delivered over an element's `$interface`
+ * channel. Platform packages and enterprise element packages may augment this
+ * interface to add event names and their payload shapes.
+ *
+ * @example
+ * declare module '@process.co/element-types' {
+ *   interface ElementInterfaceEventMap {
+ *     'provider.partial-failure': { failedIds: string[] };
+ *   }
+ * }
+ */
+export interface ElementInterfaceEventMap {
+    /** Emitted after response-interface data is persisted and ready to read. */
+    'interface.ready': {
+        dataHash?: string;
+        fern?: string;
+        $crc?: string;
+    };
+    /** Emitted when the edge-held HTTP client disconnects before completion. */
+    'http.disconnected': {
+        status: number;
+        terminal: true;
+    };
+    /** Canonical workflow-step failure vocabulary emitted by the Go loop. */
+    'element.error': {
+        elementId: string;
+        message: string;
+        phase: string;
+        retryable: boolean;
+    };
+}
+
+export type ElementInterfaceEventName = Extract<keyof ElementInterfaceEventMap, string>;
+
+/**
+ * Explicit routing controls available only while handling a `$interface`
+ * subscription. Callbacks are observer-only by default; authors must opt in
+ * before the recorded element's ordinary transition is evaluated again.
+ */
+export interface InterfaceRecoveryControl {
+    /** Rejoin ordinary workflow routing after this callback completes. */
+    continue(): void;
+}
+
+/** Host services available to a typed `$interface` callback. */
+export type InterfaceSubscriptionHost<Host> = Host & {
+    recovery: InterfaceRecoveryControl;
+};
+
+/** Canonical, discriminated event envelope used by `$interface` subscriptions. */
+export type ElementInterfaceEvent<
+    Name extends ElementInterfaceEventName = ElementInterfaceEventName,
+> = {
+    /** Stable producer identity used for delivery idempotency and replay. */
+    id: string;
+    type: Name;
+    payload: ElementInterfaceEventMap[Name];
+    /** Producer timestamp; consumers must not use it as the idempotency key. */
+    occurredAt?: number;
+    /** Stable producer family for diagnostics and policy. */
+    source?: string;
+};
+
+/** Host payload passed to a `$interface` subscription handler. */
+export type InterfaceSubscriptionOptions<
+    Name extends ElementInterfaceEventName,
+    Host,
+> = {
+    $: Host;
+    /** The normal Phase 8 re-entry payload, narrowed to this subscribed event. */
+    input: ElementInterfaceEvent<Name>;
+};
+
+export type ActionInterfaceSubscriptionMethod<
+    T,
+    Name extends ElementInterfaceEventName,
+> = (
+    this: DeriveActionInstance<T>,
+    params: InterfaceSubscriptionOptions<Name, InterfaceSubscriptionHost<ProcessFunctions>>,
+) => void | Promise<unknown>;
+
+export type ActionInterfaceSubscriptionsDefinition<T> = Partial<{
+    [Name in ElementInterfaceEventName]: ActionInterfaceSubscriptionMethod<T, Name>;
+}>;
+
+type ActionInterfaceSubscriptionContextualMethod<Name extends ElementInterfaceEventName> = {
+    bivarianceHack(
+        params: InterfaceSubscriptionOptions<Name, InterfaceSubscriptionHost<ProcessFunctions>>,
+    ): void | Promise<unknown>;
+}['bivarianceHack'];
+
+/** Contextual `$interface` subscription bag used by {@link defineAction}. */
+export type ActionInterfaceSubscriptionsWithThis<T> = Partial<{
+    [Name in ElementInterfaceEventName]: ActionInterfaceSubscriptionContextualMethod<Name>;
+}> & ThisType<DeriveActionInstance<T>>;
+
+type RejectUnknownInterfaceSubscriptionKeys<T, ValidBag> =
+    T extends { interfaceSubscriptions?: infer AuthoredBag }
+        ? Exclude<keyof NonNullable<AuthoredBag>, ElementInterfaceEventName> extends never
+            ? ValidBag
+            : never
+        : ValidBag;
+
 /** Canonical action entrypoint — implement `run` here (see process-internal loop, etc.). */
 export type ActionMethodsRun = {
     methods: Record<string, unknown> & { run: ActionRunFn };
@@ -1466,6 +1746,8 @@ export type ActionDefinitionShape<T> = {
      * @deprecated Use `methods.run`.
      */
     run?: (this: DeriveActionInstance<T>, params: ActionRunOptions) => Promise<unknown>;
+    reentry?: ActionReentryDefinition<T>;
+    interfaceSubscriptions?: ActionInterfaceSubscriptionsDefinition<T>;
 };
 
 /** Contextual `this` for top-level and `methods.*` action functions. */
@@ -1477,7 +1759,13 @@ export type ActionMethodsWithThis<T> = T &
 
 export function defineAction<
     const T extends ActionMethods & { type: 'action' } & Record<string, unknown>,
->(action: ActionMethodsWithThis<T>): T {
+>(action: ActionMethodsWithThis<T> & {
+    reentry?: ActionReentryWithThis<T>;
+    interfaceSubscriptions?: RejectUnknownInterfaceSubscriptionKeys<
+        T,
+        ActionInterfaceSubscriptionsWithThis<T>
+    >;
+}): T {
     return action;
 }
 
@@ -1546,9 +1834,57 @@ export type SignalDefinitionShape<T> = {
      */
     run?: (this: DeriveSignalInstance<T>, params: SignalRunOptions) => Promise<unknown>;
     hooks?: SignalHooksDefinition<T>;
+    reentry?: SignalReentryDefinition<T>;
+    interfaceSubscriptions?: SignalInterfaceSubscriptionsDefinition<T>;
 };
 
 export type SignalRunFn = (params: SignalRunOptions) => void | Promise<unknown>;
+
+/** Host and author-declared callback payload passed to a signal re-entry method. */
+export type SignalReentryOptions<Input = unknown> = {
+    $: SignalRunHostServices;
+    input: Input;
+};
+
+/** One author-declared signal continuation callback. */
+export type SignalReentryMethod<T, Input = unknown> = (
+    this: DeriveSignalInstance<T>,
+    params: SignalReentryOptions<Input>,
+) => void | Promise<unknown>;
+
+/** Dedicated named continuation callbacks on a signal definition. */
+export type SignalReentryDefinition<T> = Record<string, SignalReentryMethod<T, any>>;
+
+type SignalReentryContextualMethod = {
+    bivarianceHack(params: SignalReentryOptions): void | Promise<unknown>;
+}['bivarianceHack'];
+
+/** Contextual re-entry bag used by {@link defineSignal}. */
+export type SignalReentryWithThis<T> = Record<string, SignalReentryContextualMethod> &
+    ThisType<DeriveSignalInstance<T>>;
+
+export type SignalInterfaceSubscriptionMethod<
+    T,
+    Name extends ElementInterfaceEventName,
+> = (
+    this: DeriveSignalInstance<T>,
+    params: InterfaceSubscriptionOptions<Name, InterfaceSubscriptionHost<SignalRunHostServices>>,
+) => void | Promise<unknown>;
+
+export type SignalInterfaceSubscriptionsDefinition<T> = Partial<{
+    [Name in ElementInterfaceEventName]: SignalInterfaceSubscriptionMethod<T, Name>;
+}>;
+
+type SignalInterfaceSubscriptionContextualMethod<Name extends ElementInterfaceEventName> = {
+    bivarianceHack(
+        params: InterfaceSubscriptionOptions<Name, InterfaceSubscriptionHost<SignalRunHostServices>>,
+    ): void | Promise<unknown>;
+}['bivarianceHack'];
+
+/** Contextual `$interface` subscription bag used by {@link defineSignal}. */
+export type SignalInterfaceSubscriptionsWithThis<T> = Partial<{
+    [Name in ElementInterfaceEventName]: SignalInterfaceSubscriptionContextualMethod<Name>;
+}> & ThisType<DeriveSignalInstance<T>>;
 
 /** Canonical signal entrypoint — implement `run` here. */
 export type SignalMethodsRun = {
@@ -1590,7 +1926,14 @@ export type SignalMethodsWithThis<T> = T &
 
 export function defineSignal<
     const T extends SignalMethods & SignalStaticMetadata & Record<string, unknown>,
->(signal: SignalMethodsWithThis<T> & { hooks?: SignalHooksWithThis<T> }): T {
+>(signal: SignalMethodsWithThis<T> & {
+    hooks?: SignalHooksWithThis<T>;
+    reentry?: SignalReentryWithThis<T>;
+    interfaceSubscriptions?: RejectUnknownInterfaceSubscriptionKeys<
+        T,
+        SignalInterfaceSubscriptionsWithThis<T>
+    >;
+}): T {
     return signal;
 }
 

@@ -38,6 +38,8 @@ export type IngressVerifyAuthFilter = {
         extract: IngressAuthExtract;
         /** Required when `kind: 'simple'`. Constant-time compared on the edge. */
         simpleToken?: string;
+        /** External identity provider whose bearer token should be introspected. */
+        provider?: 'slack' | 'teams' | 'discord' | 'google_chat' | 'mattermost' | 'webex' | 'zoom' | 'internal' | 'custom';
     };
 };
 /**

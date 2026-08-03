@@ -1,3 +1,4 @@
+import type { SlotControlDefinition } from './slot-control-definition';
 export type ISlotInstanceDefinition = {
     id?: string;
     label?: string;
@@ -27,6 +28,8 @@ export type ISlotStaticInstanceDefinition = ISlotInstanceDefinition & {
     type: 'static';
 };
 export type ISlotDefinition = {
+    /** Optional generic execution and presentation contract for this container. */
+    control?: SlotControlDefinition;
     showBranchLabels?: boolean;
     activeSlotId?: string;
     activeSlotLabel?: string;

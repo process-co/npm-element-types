@@ -57,7 +57,11 @@ export default exampleApp;
 ### Action (`defineAction`)
 
 ```typescript
-import { defineAction, type DeriveActionInstance } from '@process.co/element-types';
+import {
+  defineAction,
+  type ActionReentryOptions,
+  type DeriveActionInstance,
+} from '@process.co/element-types';
 
 export const sendMessage = defineAction({
   type: 'action',
@@ -67,11 +71,27 @@ export const sendMessage = defineAction({
   methods: {
     async run(this: DeriveActionInstance<typeof sendMessage>, params) {
       // params.$ — FlowFunctions, send, stash, etc.
+      const approval = await params.$.continuation('onApproval', {
+        ttlSeconds: 15 * 60,
+        channel: 'email',
+      });
+      // Send approval.url; approval.urlFor({ channel: 'sms' }) reuses the key.
       return {};
+    },
+  },
+  reentry: {
+    async onApproval({ $, input }: ActionReentryOptions<{ approvedBy: string }>) {
+      $.export('approvedBy', input.approvedBy);
     },
   },
 });
 ```
+
+`reentry` is the dedicated bag for named continuation callbacks. Each callback
+receives the normal trusted host as `$` and its external callback payload as
+`input`; annotate `ActionReentryOptions<YourPayload>` (or
+`SignalReentryOptions<YourPayload>`) to make that payload explicit. Unknown
+callback names fail at runtime rather than falling back to `run`.
 
 ### Signal (`defineSignal`)
 

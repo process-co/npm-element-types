@@ -1,7 +1,7 @@
 /**
  * Compile-only checks for defineSignal hook vs run `this` (not emitted).
  */
-import { type SignalSaveHostParameters } from './index';
+import { type SignalReentryOptions, type SignalRunHostServices, type SignalSaveHostParameters } from './index';
 declare const _webhook: {
     readonly type: "signal";
     readonly props: {
@@ -21,7 +21,12 @@ declare const _webhook: {
         readonly save: ({ $ }: SignalSaveHostParameters) => Promise<void>;
     };
     readonly methods: {
-        readonly run: ({ $, event }: import("./index").SignalRunOptions) => Promise<void>;
+        readonly run: ({ $, event }: import("./index").SignalRunOptions<SignalRunHostServices<string>>) => Promise<void>;
+    };
+    readonly reentry: {
+        readonly onRetry: ({ $, input }: SignalReentryOptions<{
+            attempt: number;
+        }>) => Promise<void>;
     };
 };
 export type _webhookType = typeof _webhook;

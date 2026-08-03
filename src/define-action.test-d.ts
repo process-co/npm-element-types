@@ -4,10 +4,18 @@
 import {
     defineAction,
     defineApp,
+    type ActionReentryOptions,
     type ActionRunOptions,
     type DeriveActionInstance,
     type DeriveEmbeddedAppPropInstance,
+    type WorkflowContinuationTimeoutSignal,
 } from './index';
+
+const _timeoutSignal: WorkflowContinuationTimeoutSignal = {
+    type: 'continuation.timeout',
+    deadlineAt: '2026-08-01T12:00:00Z',
+};
+void _timeoutSignal;
 
 const httpApp = defineApp({
     type: 'app',
@@ -29,6 +37,24 @@ const _action = defineAction({
         async run({ $, steps }) {
             void steps;
             $.export('out', {});
+            $.tag('rate.limited', 'true');
+            // @ts-expect-error — system tags are runtime-owned, not author-emittable
+            $.tag('socket.state', 'completed');
+            const typedTag = $.tag.typed<{
+                'retry.state': 'scheduled' | 'exhausted';
+                'trace.id': string;
+            }>();
+            typedTag('retry.state', 'scheduled');
+            typedTag('trace.id', 'trace-123');
+            // @ts-expect-error — declared tag values remain a closed union
+            typedTag('retry.state', 'complete');
+            // @ts-expect-error — undeclared keys use $.tag, not this typed scope
+            typedTag('rate.limited', 'true');
+            const invalidSystemTag = $.tag.typed<{
+                'socket.state': 'open';
+            }>();
+            // @ts-expect-error — a custom registry cannot claim a system key
+            invalidSystemTag('socket.state', 'open');
             void $.flow;
             const datasets = await $.table.listDatasets();
             void datasets.datasets[0]?.capabilities.read;
@@ -40,8 +66,27 @@ const _action = defineAction({
                 value: 'created by element',
             });
             void inserted.rowId;
+            const continuation = await $.continuation('onApproval', {
+                ttlSeconds: 300,
+                channel: 'email',
+            });
+            continuation.urlFor({ channel: 'sms' });
             this.label;
             this.http.httpRequest.execute;
+        },
+    },
+    reentry: {
+        async onApproval({ $, input }: ActionReentryOptions<{ approvedBy: string }>) {
+            $.export('approvedBy', input.approvedBy);
+            this.label;
+        },
+        async onUnspecifiedPayload({ $, input }) {
+            $.export('callback', 'received');
+            this.label;
+            // @ts-expect-error — callback payloads must be author-declared before use
+            input.approvedBy;
+            // @ts-expect-error — the definition bag is not an instance field
+            this.reentry;
         },
     },
 });
@@ -63,6 +108,10 @@ type _assertRunOnThis = typeof _action.methods.run extends DeriveActionInstance<
     ? true
     : false;
 const _runOnThisCheck: _assertRunOnThis = true;
+type _approvalParams = Parameters<typeof _action.reentry.onApproval>[0];
+type _approvalInput = _approvalParams['input'];
+type _assertApprovalInput = _approvalInput extends { approvedBy: string } ? true : false;
+const _approvalInputCheck: _assertApprovalInput = true;
 
 /** @deprecated top-level `run` — still accepted for older elements. */
 const _legacyTopLevelRun = defineAction({
