@@ -1,4 +1,7 @@
-import type { SlotControlDefinition } from './slot-control-definition';
+import type {
+  SlotCompletionErrorPolicy,
+  SlotControlDefinition,
+} from './slot-control-definition';
 
 export type ISlotInstanceDefinition = {
   id?: string;
@@ -24,6 +27,10 @@ export type ISlotInstanceDefinition = {
   timeoutHandlerDataPath?: string;
   /** Recovery policy: `resurrect` | `drop` (element data path). */
   timeoutRecoveryPolicyPath?: string;
+  /** Optional authored failure override for this slot. */
+  errorPolicy?: SlotCompletionErrorPolicy;
+  /** Optional element-data path for this slot's failure override. */
+  errorPolicyPath?: string;
 };
 
 export type ISlotStaticInstanceDefinition = ISlotInstanceDefinition & {
