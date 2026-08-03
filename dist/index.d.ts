@@ -64,7 +64,7 @@ import type { PropVisibilityDefinition } from './property-visibility';
 export type { ISlotInstanceDefinition, ISlotStaticInstanceDefinition, ISlotDefinition };
 export { evaluatePropVisibility } from './property-visibility';
 export type { PropVisibilityCondition, PropVisibilityDefinition } from './property-visibility';
-export type { SlotCompletionMode, SlotCompletionErrorPolicy, SlotCompletionDefinition, SlotControlExecutionDefinition, SlotControlSurfaceNodeDefinition, SlotControlSurfaceBadgeDefinition, SlotControlSurfaceControlDefinition, SlotControlSurfaceDefinition, SlotControlResultDefinition, SlotControlDefinition, } from './slot-control-definition';
+export type { SlotCompletionMode, SlotCompletionErrorPolicy, SlotCompletionDefinition, SlotControlExecutionDefinition, SlotControlRuntimeDefinition, SlotControlSurfaceNodeDefinition, SlotControlSurfaceBadgeDefinition, SlotControlSurfaceControlDefinition, SlotControlSurfaceDefinition, SlotControlResultDefinition, SlotControlDefinition, } from './slot-control-definition';
 export type { ObjectProjectionValueType, ObjectProjectionStrategy, ObjectProjectionWritePolicy, ObjectProjectionTargetCoverage, ObjectProjectionSource, ObjectProjectionRule, ObjectProjectionDocument, } from './object-projection';
 export { CONTAINER_RUNTIME_ROUTING_SLUG, containerRuntimeRangeKey, } from './container-runtime-routing';
 export type { WorkflowContainerRoutingRef, WorkflowContainerRuntimeRoutingInfo, WorkflowContainerTimeoutHandlerRouting, WorkflowContainerTimeoutRouting, WorkflowTimeoutHandlerMode, WorkflowTimeoutRecoveryPolicy, } from './container-runtime-routing';

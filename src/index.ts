@@ -34,6 +34,7 @@ export type {
   SlotCompletionErrorPolicy,
   SlotCompletionDefinition,
   SlotControlExecutionDefinition,
+  SlotControlRuntimeDefinition,
   SlotControlSurfaceNodeDefinition,
   SlotControlSurfaceBadgeDefinition,
   SlotControlSurfaceControlDefinition,

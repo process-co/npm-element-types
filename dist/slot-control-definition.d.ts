@@ -27,6 +27,18 @@ export type SlotControlExecutionDefinition = {
     /** Present only when the selected slots require a distributed join barrier. */
     completion?: SlotCompletionDefinition;
 };
+/**
+ * Closed execution-plane declaration for a Process-owned orchestration
+ * control. This is deliberately separate from the slot strategy: `selected`,
+ * `concurrent`, and `iterate` describe graph behavior, while this declaration
+ * decides whether the element host is invoked at all.
+ */
+export type SlotControlRuntimeDefinition = {
+    strategy: 'native';
+    intrinsic: string;
+    /** Contract version understood by the gateway intrinsic registry. */
+    version: 1;
+};
 export type SlotControlSurfaceNodeDefinition = {
     title?: string;
     description?: string;
@@ -95,6 +107,7 @@ export type SlotControlResultDefinition = {
  */
 export type SlotControlDefinition = {
     kind: string;
+    runtime?: SlotControlRuntimeDefinition;
     execution: SlotControlExecutionDefinition;
     result?: SlotControlResultDefinition;
     surface?: SlotControlSurfaceDefinition;
