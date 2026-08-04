@@ -1,6 +1,6 @@
 import type { ObjectProjectionStrategy, ObjectProjectionTargetCoverage, ObjectProjectionWritePolicy } from './object-projection';
 export type SlotCompletionMode = 'all' | 'allSettled' | 'any' | 'race' | 'minimumSucceeded' | 'minimumSettled';
-export type SlotCompletionErrorPolicy = 'failFast' | 'waitForAll' | 'collect' | 'ignore';
+export type SlotCompletionErrorPolicy = 'failFast' | 'waitForAll' | 'collect' | 'ignore' | 'continue';
 /**
  * Declarative completion contract for a slotted container. Paths are evaluated
  * against the same canonical node shape used by the slot layout definition.
@@ -14,6 +14,10 @@ export type SlotCompletionDefinition = {
     minimumPath?: string;
     errorPolicy?: SlotCompletionErrorPolicy;
     errorPolicyPath?: string;
+    /** Allow this authored policy to be inherited by nested containers. */
+    inheritable?: boolean;
+    /** Optional instance-level override for `inheritable`. */
+    inheritablePath?: string;
     maxConcurrencyPath?: string;
     timeoutMsPath?: string;
     cancelOnFailure?: boolean;

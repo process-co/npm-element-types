@@ -16,7 +16,8 @@ export type SlotCompletionErrorPolicy =
   | 'failFast'
   | 'waitForAll'
   | 'collect'
-  | 'ignore';
+  | 'ignore'
+  | 'continue';
 
 /**
  * Declarative completion contract for a slotted container. Paths are evaluated
@@ -31,6 +32,10 @@ export type SlotCompletionDefinition = {
   minimumPath?: string;
   errorPolicy?: SlotCompletionErrorPolicy;
   errorPolicyPath?: string;
+  /** Allow this authored policy to be inherited by nested containers. */
+  inheritable?: boolean;
+  /** Optional instance-level override for `inheritable`. */
+  inheritablePath?: string;
   maxConcurrencyPath?: string;
   timeoutMsPath?: string;
   cancelOnFailure?: boolean;

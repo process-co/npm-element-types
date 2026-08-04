@@ -51,6 +51,34 @@ export type {
   ObjectProjectionRule,
   ObjectProjectionDocument,
 } from './object-projection';
+export type {
+  CallableImplementationKind,
+  CallableResourceScope,
+  CallableVersionSelector,
+  CallableContract,
+  CallableResourceReference,
+  CallableInvocationDefinition,
+  CallableRetryPolicy,
+  CallableInvocationErrorPolicy,
+  CallableInvocationIdentity,
+  CallableInvocationEnvelope,
+  CallableInvocationPolicySnapshot,
+  CallableErrorEnvelope,
+  CallableSettlement,
+  CallableRecoveryDecision,
+} from './callable-resource';
+export {
+  ObjectProjectionDocumentSchema,
+  CallableVersionSelectorSchema,
+  CallableResourceReferenceSchema,
+  CallableInvocationDefinitionSchema,
+  CallableInvocationIdentitySchema,
+  CallableInvocationEnvelopeSchema,
+  CallableInvocationPolicySnapshotSchema,
+  CallableErrorEnvelopeSchema,
+  CallableSettlementSchema,
+  CallableRecoveryDecisionSchema,
+} from './callable-resource';
 
 export {
   CONTAINER_RUNTIME_ROUTING_SLUG,
