@@ -40,6 +40,21 @@ describe('CallableInvocationDefinitionSchema', () => {
     expect(CallableInvocationDefinitionSchema.parse(invocation())).toEqual(invocation());
   });
 
+  it('binds an immutable runtime artifact to the selected version', () => {
+    const candidate = invocation();
+    candidate.resource.runtimeTarget = {
+      artifactKey: 'dynamic-elements/actions/resource-1/versions/version-1.mjs',
+      artifactIdentity: 'version-1',
+    };
+    expect(CallableInvocationDefinitionSchema.parse(candidate)).toEqual(candidate);
+
+    candidate.resource.runtimeTarget.artifactIdentity = 'version-2';
+    expect(CallableInvocationDefinitionSchema.safeParse(candidate).success).toBe(false);
+
+    candidate.resource.version = { mode: 'draft', editingSessionId: 'session-1' };
+    expect(CallableInvocationDefinitionSchema.safeParse(candidate).success).toBe(false);
+  });
+
   it('rejects mapping rules that reference a source outside the interface', () => {
     const candidate = invocation();
     candidate.inputMapping = {

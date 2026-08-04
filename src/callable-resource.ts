@@ -33,6 +33,17 @@ export type CallableContract = {
   errorSchema?: unknown;
 };
 
+/**
+ * Immutable physical artifact selected when a callable snapshot is published.
+ * Logical identity remains in `definitionFern`; runtimes use this locator
+ * without consulting a mutable `latest` pointer.
+ */
+export type CallableRuntimeTarget = {
+  artifactKey: string;
+  /** Stable cache identity for this exact artifact (normally the Version.id). */
+  artifactIdentity: string;
+};
+
 /** Stable resource identity plus the exact implementation selected to run. */
 export type CallableResourceReference = {
   stableId: string;
@@ -40,6 +51,7 @@ export type CallableResourceReference = {
   implementationKind: CallableImplementationKind;
   scope: CallableResourceScope;
   version: CallableVersionSelector;
+  runtimeTarget?: CallableRuntimeTarget;
   contract?: CallableContract;
 };
 
@@ -125,8 +137,42 @@ export const CallableResourceReferenceSchema: z.ZodType<CallableResourceReferenc
   implementationKind: z.enum(['action', 'workflowGroup', 'workflow', 'hosted', 'external']),
   scope: z.enum(['workflow', 'project', 'team', 'public']),
   version: CallableVersionSelectorSchema,
+  runtimeTarget: z.object({
+    artifactKey: z.string().trim().min(1),
+    artifactIdentity: z.string().trim().min(1),
+  }).strict().optional(),
   contract: z.object({ inputSchema: z.unknown().optional(), successSchema: z.unknown().optional(), errorSchema: z.unknown().optional() }).strict().optional(),
-}).strict();
+}).strict().superRefine((resource, ctx) => {
+  if (resource.runtimeTarget && resource.version.mode !== 'pinned') {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['runtimeTarget'],
+      message: 'runtimeTarget requires a pinned callable version',
+    });
+  }
+  if (
+    resource.runtimeTarget &&
+    resource.version.mode === 'pinned' &&
+    resource.runtimeTarget.artifactIdentity !== resource.version.versionId
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['runtimeTarget', 'artifactIdentity'],
+      message: 'artifactIdentity must match the pinned versionId',
+    });
+  }
+  if (
+    resource.version.mode === 'pinned' &&
+    resource.definitionFern?.includes('code[') &&
+    !resource.runtimeTarget
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['runtimeTarget'],
+      message: 'Pinned dynamic callables require an immutable runtimeTarget',
+    });
+  }
+});
 
 const callableRetryPolicySchema = z.object({
   maxAttempts: z.number().int().min(1).max(100),

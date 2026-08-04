@@ -21,6 +21,16 @@ export type CallableContract = {
     successSchema?: unknown;
     errorSchema?: unknown;
 };
+/**
+ * Immutable physical artifact selected when a callable snapshot is published.
+ * Logical identity remains in `definitionFern`; runtimes use this locator
+ * without consulting a mutable `latest` pointer.
+ */
+export type CallableRuntimeTarget = {
+    artifactKey: string;
+    /** Stable cache identity for this exact artifact (normally the Version.id). */
+    artifactIdentity: string;
+};
 /** Stable resource identity plus the exact implementation selected to run. */
 export type CallableResourceReference = {
     stableId: string;
@@ -28,6 +38,7 @@ export type CallableResourceReference = {
     implementationKind: CallableImplementationKind;
     scope: CallableResourceScope;
     version: CallableVersionSelector;
+    runtimeTarget?: CallableRuntimeTarget;
     contract?: CallableContract;
 };
 /** A node is an invocation of a resource, not a copy of its implementation. */
