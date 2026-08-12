@@ -1,5 +1,6 @@
 /// <reference types="node" />
 import type { z } from 'zod';
+import './schema-documentation';
 
 // Element types
 export type ElementString = { type: "string"; label?: string; description?: string };

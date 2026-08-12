@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import './schema-documentation';
 export type ElementString = {
     type: "string";
     label?: string;
