@@ -1579,6 +1579,7 @@ export interface Signal<P extends Record<string, any> = Record<string, any>> {
     hooks?: SignalHooksDefinition<Signal<P>>;
     reentry?: SignalReentryDefinition<Signal<P>>;
     interfaceSubscriptions?: SignalInterfaceSubscriptionsDefinition<Signal<P>>;
+    producer?: SignalProducerDeclaration;
 }
 
 type SignalRun<T> = (this: DeriveSignalInstance<T>, params: SignalRunOptions) => Promise<unknown>;
@@ -1856,6 +1857,7 @@ export type SignalDefinitionShape<T> = {
      * chain when the final filter list depends on authored props.
      */
     ingress?: IngressFiltersPolicy;
+    producer?: SignalProducerDeclaration;
     methods: Record<string, unknown> & {
         run: (this: DeriveSignalInstance<T>, params: SignalRunOptions) => Promise<unknown>;
     };
@@ -1936,6 +1938,34 @@ export type SignalMethods = SignalMethodsRun | SignalMethodsLegacyTopLevelRun;
 /** Public static edge-ingress declaration accepted by {@link defineSignal}. */
 export type SignalIngressDeclaration = IngressFiltersPolicy;
 
+/**
+ * Declares how an external occurrence reaches a signal. This is deliberately
+ * separate from `hooks`: hooks are implementation details, while the producer
+ * kind determines admission, acknowledgement, replay, and lifecycle behavior.
+ */
+export type SignalProducerDeclaration =
+    | {
+        /** Process-owned HTTP endpoint whose downstream workflow may author the response. */
+        kind: 'processWebhook';
+    }
+    | {
+        /** Provider-managed webhook/event subscription with fixed, immediate acknowledgement. */
+        kind: 'webEvent';
+        provider: string;
+        authentication?: 'none' | 'provider' | 'hmac' | 'custom';
+        capture?: {
+            retentionSeconds?: number;
+            maxInlineBytes?: number;
+            maxEventsPerMinute?: number;
+            maxBytesPerMinute?: number;
+            failurePolicy?: 'required' | 'bestEffort';
+        };
+    }
+    | {
+        /** Schedule occurrence evaluated before an observation is admitted. */
+        kind: 'timer';
+    };
+
 /** Optional static metadata accepted on every signal definition. */
 export type SignalStaticMetadata = {
     /**
@@ -1945,6 +1975,7 @@ export type SignalStaticMetadata = {
      * replaces this default chain completely.
      */
     ingress?: SignalIngressDeclaration;
+    producer?: SignalProducerDeclaration;
 };
 
 /** Contextual `this` for top-level and `methods.*` signal functions. */

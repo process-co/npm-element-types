@@ -59,6 +59,7 @@ export type ProcessElementSignalCliWire = {
   initValue?: unknown;
   icon?: unknown;
   hooks?: boolean;
+  producer?: unknown;
   dedupe?: unknown;
   http?: unknown;
   instant?: boolean;
