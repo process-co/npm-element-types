@@ -1299,6 +1299,13 @@ export type SignalProducerDeclaration = {
 } | {
     /** Schedule occurrence evaluated before an observation is admitted. */
     kind: 'timer';
+    /**
+     * `direct` admits the configured timer payload as the domain event.
+     * `derived` first invokes this signal for the occurrence and admits
+     * only the values it emits. Use derived mode for polling adapters
+     * whose timer tick is an implementation detail rather than the event.
+     */
+    mode?: 'direct' | 'derived';
 } | {
     /**
      * Process-owned Data Source materialization event.
