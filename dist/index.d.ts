@@ -63,6 +63,7 @@ import type { ConfigureIngressFiltersOptions, IngressFiltersPolicy } from './ing
 import type { ExecutionTagFn } from './execution-tags';
 import type { PropVisibilityDefinition } from './property-visibility';
 export type { ISlotInstanceDefinition, ISlotStaticInstanceDefinition, ISlotDefinition };
+export type { DataAdapterChangeNotification, DataAdapterConfigurationProjection, DataAdapterRefreshDefinition, TableAdapterDefinition, } from './data-adapter';
 export { evaluatePropVisibility } from './property-visibility';
 export type { PropVisibilityCondition, PropVisibilityDefinition } from './property-visibility';
 export type { SlotCompletionMode, SlotCompletionErrorPolicy, SlotCompletionDefinition, SlotControlExecutionDefinition, SlotControlRuntimeDefinition, SlotControlSurfaceNodeDefinition, SlotControlSurfaceBadgeDefinition, SlotControlSurfaceControlDefinition, SlotControlSurfaceDefinition, SlotControlResultDefinition, SlotControlDefinition, } from './slot-control-definition';
@@ -352,6 +353,13 @@ export type SignalHookHostContext = {
      * `false` on publish / production hook runs.
      */
     isDraft: boolean;
+    /** Stable provider-event ingress assigned by the SignalProxy lifecycle. */
+    signalProxy?: {
+        id: string;
+        revision: number;
+        operationId: string;
+        ingressUrl: string;
+    };
 };
 /** Host `params.$` during **`hooks.save`**. */
 export type SignalSaveHookHostServices = SignalHookHostContext & {
@@ -810,7 +818,13 @@ type BasePropDefinition = {
     options?: readonly {
         label?: string;
         value: unknown;
-    }[];
+    }[] | ((...args: any[]) => readonly {
+        label?: string;
+        value: unknown;
+    }[] | Promise<readonly {
+        label?: string;
+        value: unknown;
+    }[]>);
     ui?: any;
     default?: any;
     visibleWhen?: PropVisibilityDefinition;
@@ -1155,6 +1169,7 @@ export type ActionMethodsWithThis<T> = T & ThisType<DeriveActionInstance<T>> & (
 export declare function defineAction<const T extends ActionMethods & {
     type: 'action';
 } & Record<string, unknown>>(action: ActionMethodsWithThis<T> & {
+    tableAdaptor?: import('./data-adapter').TableAdapterDefinition;
     reentry?: ActionReentryWithThis<T>;
     interfaceSubscriptions?: RejectUnknownInterfaceSubscriptionKeys<T, ActionInterfaceSubscriptionsWithThis<T>>;
 }): T;
@@ -1166,13 +1181,15 @@ export type SignalHostHookParameters = {
 export type SignalSaveHostParameters = {
     $: SignalSaveHookHostServices;
 };
-export type SignalHostHookMethod<T> = (this: DeriveSignalHookInstance<T>, params: SignalHostHookParameters) => void | Promise<void>;
-export type SignalSaveHookMethod<T> = (this: DeriveSignalHookInstance<T>, params: SignalSaveHostParameters) => void | Promise<void>;
+export type SignalHostHookMethod<T> = (this: DeriveSignalHookInstance<T>, params: SignalHostHookParameters) => unknown | Promise<unknown>;
+export type SignalSaveHookMethod<T> = (this: DeriveSignalHookInstance<T>, params: SignalSaveHostParameters) => unknown | Promise<unknown>;
 export type SignalHooksDefinition<T> = {
     deactivate?: SignalHostHookMethod<T>;
+    destroy?: SignalHostHookMethod<T>;
     activate?: SignalHostHookMethod<T>;
     save?: SignalSaveHookMethod<T>;
     onDeactivate?: SignalHostHookMethod<T>;
+    onDestroy?: SignalHostHookMethod<T>;
     onActivate?: SignalHostHookMethod<T>;
     onSave?: SignalSaveHookMethod<T>;
 };
@@ -1181,12 +1198,14 @@ export type SignalHooksDefinition<T> = {
  * {@link ThisType}<{@link DeriveSignalHookInstance}<T>> (avoids circular `T` and empty `this`).
  */
 export type SignalHooksContextualDefinition = {
-    deactivate?: (params: SignalHostHookParameters) => void | Promise<void>;
-    activate?: (params: SignalHostHookParameters) => void | Promise<void>;
-    save?: (params: SignalSaveHostParameters) => void | Promise<void>;
-    onDeactivate?: (params: SignalHostHookParameters) => void | Promise<void>;
-    onActivate?: (params: SignalHostHookParameters) => void | Promise<void>;
-    onSave?: (params: SignalSaveHostParameters) => void | Promise<void>;
+    deactivate?: (params: SignalHostHookParameters) => unknown | Promise<unknown>;
+    destroy?: (params: SignalHostHookParameters) => unknown | Promise<unknown>;
+    activate?: (params: SignalHostHookParameters) => unknown | Promise<unknown>;
+    save?: (params: SignalSaveHostParameters) => unknown | Promise<unknown>;
+    onDeactivate?: (params: SignalHostHookParameters) => unknown | Promise<unknown>;
+    onDestroy?: (params: SignalHostHookParameters) => unknown | Promise<unknown>;
+    onActivate?: (params: SignalHostHookParameters) => unknown | Promise<unknown>;
+    onSave?: (params: SignalSaveHostParameters) => unknown | Promise<unknown>;
 };
 /** Hook bag for {@link defineSignal}. */
 export type SignalHooksWithThis<T> = SignalHooksContextualDefinition & ThisType<DeriveSignalHookInstance<T>>;
@@ -1280,6 +1299,15 @@ export type SignalProducerDeclaration = {
 } | {
     /** Schedule occurrence evaluated before an observation is admitted. */
     kind: 'timer';
+} | {
+    /**
+     * Process-owned Data Source materialization event.
+     *
+     * The authored signal selects a dataset through its props. The platform
+     * resolves that dataset to its stable Event Client and binds the workflow
+     * to it; element code never provisions or transports the event itself.
+     */
+    kind: 'dataSource';
 };
 /** Optional static metadata accepted on every signal definition. */
 export type SignalStaticMetadata = {
