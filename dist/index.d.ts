@@ -1306,6 +1306,16 @@ export type SignalProducerDeclaration = {
      * whose timer tick is an implementation detail rather than the event.
      */
     mode?: 'direct' | 'derived';
+    /**
+     * Closed, versioned platform implementation for owned derived signals.
+     * The element remains the authoring surface; Edge executes the behavior
+     * without crossing into an element host. Omit for hosted element code.
+     */
+    processor?: {
+        kind: 'intrinsic';
+        name: 'http-content-changed';
+        version: 1;
+    };
 } | {
     /**
      * Process-owned Data Source materialization event.
