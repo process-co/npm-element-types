@@ -1,4 +1,6 @@
 import type { ISlotDefinition } from './slot-definition';
+import type { ActionSurfaceDefinitions } from './action-surface';
+import type { ActionCapabilityClaims } from './action-capability';
 /**
  * One flattened prop row from **`process-co` compatibility `loadElementPointers`** (`buildProp` output).
  * Matches **`@process.co/elements`** `IProcessDefinitionUIPointers.props[]` plus loader fields.
@@ -29,6 +31,8 @@ export type ProcessElementActionCliWire = {
     description?: string;
     icon?: unknown;
     ui?: string;
+    surfaces?: ActionSurfaceDefinitions;
+    capabilityClaims?: ActionCapabilityClaims;
     categoryKey?: string;
     sampleEmit?: unknown;
     returns?: string;

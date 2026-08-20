@@ -1797,6 +1797,8 @@ export type ActionDefinitionShape<T> = {
     run?: (this: DeriveActionInstance<T>, params: ActionRunOptions) => Promise<unknown>;
     reentry?: ActionReentryDefinition<T>;
     interfaceSubscriptions?: ActionInterfaceSubscriptionsDefinition<T>;
+    surfaces?: import('./action-surface').ActionSurfaceDefinitions;
+    capabilityClaims?: import('./action-capability').ActionCapabilityClaims;
 };
 
 /** Contextual `this` for top-level and `methods.*` action functions. */
@@ -1810,6 +1812,8 @@ export function defineAction<
     const T extends ActionMethods & { type: 'action' } & Record<string, unknown>,
 >(action: ActionMethodsWithThis<T> & {
     tableAdaptor?: import('./data-adapter').TableAdapterDefinition;
+    surfaces?: import('./action-surface').ActionSurfaceDefinitions;
+    capabilityClaims?: import('./action-capability').ActionCapabilityClaims;
     reentry?: ActionReentryWithThis<T>;
     interfaceSubscriptions?: RejectUnknownInterfaceSubscriptionKeys<
         T,
@@ -2068,6 +2072,9 @@ export type ElementUIProps<T> = {
     value: T;
     readonly?: boolean;
 }
+
+export * from './action-surface';
+export * from './action-capability';
 
 // Utility type to automatically infer the correct this context for methods
 export type WithThis<T> = T extends { methods: Record<string, any>; props: Record<string, any> }
