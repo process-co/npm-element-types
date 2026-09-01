@@ -98,6 +98,11 @@ export type ProcessTicket = {
     source: 'webhook' | 'smtp' | 'manual' | 'scheduled';
     verified: boolean;
     buildId: string;
+    /** Reference to the authoritative ingress security context for this trigger. */
+    ingressContext?: {
+        contextId: string;
+        version: number;
+    };
 };
 export type SignalEventShape = {
     $$process: ProcessTicket;
