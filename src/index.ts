@@ -1078,6 +1078,13 @@ export interface ProcessRuntimeContext {
 export interface ProcessInternalFunctions extends ProcessFunctions {
     $transitionToSlot(slots: Array<SlotTransitionDefinition>): void;
     /**
+     * Effective invocation-scoped runtime configuration. Resolution order is
+     * System -> Workspace -> Project, with the current environment overriding
+     * `All`. Secret values exist only on this server-side execution surface and
+     * are never added to workflow state or browser configuration.
+     */
+    env: Readonly<Record<string, string>>;
+    /**
      * Runtime metadata for the currently-executing element. Use
      * `$.runtime.current.elementId` (etc.) instead of the deprecated
      * `{{ID_GUID}}` slot-id template placeholder.
