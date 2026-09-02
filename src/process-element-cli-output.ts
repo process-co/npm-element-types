@@ -5,6 +5,7 @@ import type {
   ElementSemanticInterfaceDeclaration,
   SemanticInterfaceTypeId,
 } from './semantic-interface';
+import type { InterfaceRegistryManifest } from './interface-registry-contract';
 
 /**
  * One flattened prop row from **`process-co` compatibility `loadElementPointers`** (`buildProp` output).
@@ -94,4 +95,6 @@ export type ProcessElementCliOutputWire = {
   actions: ProcessElementActionCliWire[];
   signals: ProcessElementSignalCliWire[];
   credentials: unknown[];
+  /** Compiled, validated interface graph fragment published with this exact element build. */
+  interfaceRegistry?: InterfaceRegistryManifest;
 };

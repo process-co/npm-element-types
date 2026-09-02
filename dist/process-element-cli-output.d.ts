@@ -2,6 +2,7 @@ import type { ISlotDefinition } from './slot-definition';
 import type { ActionSurfaceDefinitions } from './action-surface';
 import type { ActionCapabilityClaims } from './action-capability';
 import type { ElementSemanticInterfaceDeclaration, SemanticInterfaceTypeId } from './semantic-interface';
+import type { InterfaceRegistryManifest } from './interface-registry-contract';
 /**
  * One flattened prop row from **`process-co` compatibility `loadElementPointers`** (`buildProp` output).
  * Matches **`@process.co/elements`** `IProcessDefinitionUIPointers.props[]` plus loader fields.
@@ -87,5 +88,7 @@ export type ProcessElementCliOutputWire = {
     actions: ProcessElementActionCliWire[];
     signals: ProcessElementSignalCliWire[];
     credentials: unknown[];
+    /** Compiled, validated interface graph fragment published with this exact element build. */
+    interfaceRegistry?: InterfaceRegistryManifest;
 };
 //# sourceMappingURL=process-element-cli-output.d.ts.map

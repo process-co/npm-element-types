@@ -1,4 +1,4 @@
-import type { z } from 'zod';
+import { z } from 'zod';
 
 /** A concrete major revision in the Process or organization interface taxonomy. */
 export type SemanticInterfaceTypeId =
@@ -14,6 +14,51 @@ export type SemanticInterfaceTypeDefinition<
     readonly title: string;
     readonly description: string;
     readonly schema: Schema;
+    /** Optional immutable revision label. The build compiler derives one from content when omitted. */
+    readonly revisionId?: string;
+    /** Security and governance labels copied into the compiled catalog definition. */
+    readonly dataClassifications?: readonly string[];
+    /** Fields whose provenance permits consumers to treat them as attributable facts. */
+    readonly trustedFields?: readonly string[];
+    readonly compatibility?: {
+        readonly extends?: readonly SemanticInterfaceTypeId[];
+        readonly replaces?: SemanticInterfaceTypeId;
+    };
+    /** Build-time examples that prove both accepted and rejected values for this exact definition. */
+    readonly conformanceFixtures?: readonly (
+        | {
+            readonly name: string;
+            readonly expectation: 'valid';
+            readonly value: z.input<Schema>;
+            readonly reason: string;
+        }
+        | {
+            readonly name: string;
+            readonly expectation: 'invalid';
+            readonly value: unknown;
+            readonly reason: string;
+        }
+    )[];
+    /** Human- and agent-oriented guidance published with the interface. */
+    readonly documentation?: {
+        readonly human?: {
+            readonly summary?: string;
+            readonly useWhen?: readonly string[];
+            readonly avoidWhen?: readonly string[];
+            readonly fieldNotes?: Readonly<Record<string, string>>;
+            readonly examples?: readonly {
+                readonly name: string;
+                readonly summary?: string;
+                readonly value: unknown;
+            }[];
+        };
+        readonly agent?: {
+            readonly instructions?: readonly string[];
+            readonly invariants?: readonly string[];
+            readonly prohibitedInferences?: readonly string[];
+            readonly mappingGuidance?: readonly string[];
+        };
+    };
 };
 
 /**
@@ -53,13 +98,43 @@ export type ElementSemanticInterfaceDeclaration = {
     readonly outputs?: readonly SemanticInterfaceProjectionDeclaration[];
 };
 
+/** Forward declaration for the richer build-time authoring shape. */
+export type AuthoredElementSemanticInterfaceDeclaration = import('./interface-authoring').AuthoredElementSemanticInterfaceDeclaration;
+
 /** Optional static semantic metadata accepted by actions, signals, and sources. */
 export type ElementSemanticInterfaceMetadata = {
-    readonly interfaces?: ElementSemanticInterfaceDeclaration;
+    readonly interfaces?: ElementSemanticInterfaceDeclaration | AuthoredElementSemanticInterfaceDeclaration;
 };
 
 const SEMANTIC_INTERFACE_ID =
     /^(?:process(?:\.[a-z][a-z0-9-]*)+|org\.[a-z0-9][a-z0-9-]{0,62}(?:\.[a-z][a-z0-9-]*)+)@[1-9]\d*$/;
+
+/** Shared wire validator for semantic identifiers at build, ingestion, and runtime boundaries. */
+export const SemanticInterfaceTypeIdSchema: z.ZodType<SemanticInterfaceTypeId> = z
+    .string()
+    .trim()
+    .min(1)
+    .max(300)
+    .regex(SEMANTIC_INTERFACE_ID) as z.ZodType<SemanticInterfaceTypeId>;
+
+export const SemanticInterfaceMappingReferenceSchema = z.object({
+    mappingId: z.string().trim().min(1).max(300),
+    revisionId: z.string().trim().min(1).max(200),
+    kind: z.enum(['declarative', 'custom-adapter']),
+}).strict();
+
+export const SemanticInterfaceProjectionDeclarationSchema = z.object({
+    interfaceType: SemanticInterfaceTypeIdSchema,
+    mapping: SemanticInterfaceMappingReferenceSchema,
+    lossiness: z.enum(['lossless', 'lossy']),
+    resolution: z.enum(['deterministic', 'probabilistic']).default('deterministic'),
+}).strict();
+
+export const ElementSemanticInterfaceDeclarationSchema = z.object({
+    native: SemanticInterfaceTypeIdSchema,
+    inputs: z.array(SemanticInterfaceTypeIdSchema).max(100).default([]),
+    outputs: z.array(SemanticInterfaceProjectionDeclarationSchema).max(100).default([]),
+}).strict();
 
 function record(value: unknown, path: string): Record<string, unknown> {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -81,7 +156,7 @@ export function parseSemanticInterfaceTypeId(
     path = 'interfaceType',
 ): SemanticInterfaceTypeId {
     const candidate = boundedString(value, path);
-    if (!SEMANTIC_INTERFACE_ID.test(candidate)) {
+    if (!SemanticInterfaceTypeIdSchema.safeParse(candidate).success) {
         throw new TypeError(`${path} is not a valid semantic interface type identifier`);
     }
     return candidate as SemanticInterfaceTypeId;

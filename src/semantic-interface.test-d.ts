@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 import {
     defineAction,
+    defineElementInterfaces,
+    defineInterfaceMapping,
     defineInterfaceType,
     defineSource,
     type InferSemanticInterfaceType,
@@ -18,6 +20,49 @@ const literalId: 'process.email.message@1' = EmailMessage.id;
 const inferredValue: InferSemanticInterfaceType<typeof EmailMessage> = { subject: 'Hello' };
 void literalId;
 void inferredValue;
+
+const ProviderMessage = defineInterfaceType({
+    id: 'org.example.provider-message@1',
+    title: 'Provider message',
+    description: 'Provider-native message.',
+    schema: z.object({ providerSubject: z.string() }),
+});
+
+const providerToEmail = defineInterfaceMapping({
+    kind: 'custom-adapter',
+    mappingId: 'example.provider-to-email',
+    source: ProviderMessage,
+    target: EmailMessage,
+    lossiness: 'lossless',
+    adapter: {
+        runtime: 'nodejs',
+        artifactPath: 'mappings/provider-to-email.js',
+        exportName: 'providerToEmail',
+    },
+    convert(value) {
+        const subject: string = value.providerSubject;
+        return { subject };
+    },
+});
+
+const emailToProvider = defineInterfaceMapping({
+    kind: 'declarative',
+    mappingId: 'example.email-to-provider',
+    source: EmailMessage,
+    target: ProviderMessage,
+    lossiness: 'lossless',
+    root: {
+        op: 'object',
+        fields: { providerSubject: { op: 'source', pointer: '/subject' } },
+    },
+});
+
+const providerInterfaces = defineElementInterfaces({
+    version: 2,
+    native: ProviderMessage,
+    accepts: [emailToProvider],
+    emits: [providerToEmail],
+});
 
 defineAction({
     type: 'action',
@@ -46,6 +91,12 @@ defineAction({
             void this.interfaces;
         },
     },
+});
+
+defineAction({
+    type: 'action',
+    interfaces: providerInterfaces,
+    methods: { async run() {} },
 });
 
 defineSource({

@@ -149,9 +149,80 @@ export type {
 
 export {
     defineInterfaceType,
+    SemanticInterfaceTypeIdSchema,
+    SemanticInterfaceMappingReferenceSchema,
+    SemanticInterfaceProjectionDeclarationSchema,
+    ElementSemanticInterfaceDeclarationSchema,
     parseSemanticInterfaceTypeId,
     parseElementSemanticInterfaceDeclaration,
 } from './semantic-interface';
+
+export {
+    defineElementInterfaces,
+    defineInterfaceMapping,
+} from './interface-authoring';
+export type {
+    SemanticInterfaceReference,
+    SemanticInterfaceIdOf,
+    SemanticInterfaceValueOf,
+    AuthoredInterfaceMappingLimits,
+    AuthoredProbabilisticFieldPolicy,
+    AuthoredDeclarativeInterfaceMapping,
+    AuthoredCustomInterfaceMapping,
+    AuthoredInterfaceMapping,
+    AnyAuthoredInterfaceMapping,
+    AuthoredElementSemanticInterfaceDeclaration,
+} from './interface-authoring';
+
+export {
+    CompiledInterfaceMappingDescriptorSchema,
+    CompiledInterfaceMappingExpressionSchema,
+    CompiledInterfaceMappingLimitsSchema,
+    CompiledProbabilisticFieldPolicySchema,
+    CompiledDeclarativeMappingProgramSchema,
+    CompiledCustomAdapterArtifactSchema,
+    CompiledInterfaceMappingArtifactSchema,
+} from './interface-mapping-contract';
+export type {
+    CompiledInterfaceMappingExpression,
+    CompiledInterfaceMappingDescriptor,
+    CompiledDeclarativeMappingProgram,
+    CompiledInterfaceMappingArtifact,
+} from './interface-mapping-contract';
+
+export {
+    CompiledInterfaceExampleSchema,
+    CompiledInterfaceHumanDocumentationSchema,
+    CompiledInterfaceAgentDocumentationSchema,
+    CompiledInterfaceDocumentationSchema,
+    CompiledInterfaceOwnerSchema,
+    CompiledInterfaceJsonSchemaSchema,
+    CompiledInterfaceDataClassificationSchema,
+    CompiledInterfaceCompatibilitySchema,
+    CompiledInterfaceDefinitionSchema,
+    CompiledInterfaceDefinitionArtifactSchema,
+    CompiledStructuralTypeArtifactSchema,
+    CompiledMappingReferenceSchema,
+    CompiledElementInterfaceOperationSchema,
+    InterfaceRegistryManifestSourceSchema,
+    InterfaceRegistryManifestSchema,
+    StructuralTypeObservationSchema,
+    StructuralTypeMergeDiagnosticSchema,
+} from './interface-registry-contract';
+export { mergeStructuralTypeEvidence } from './structural-type-merge';
+export type {
+    MergeStructuralTypeEvidenceInput,
+    MergedStructuralType,
+} from './structural-type-merge';
+export type {
+    CompiledInterfaceDefinition,
+    CompiledInterfaceDefinitionArtifact,
+    CompiledStructuralTypeArtifact,
+    CompiledElementInterfaceOperation,
+    InterfaceRegistryManifest,
+    StructuralTypeObservation,
+    StructuralTypeMergeDiagnostic,
+} from './interface-registry-contract';
 export type {
     SemanticInterfaceTypeId,
     SemanticInterfaceTypeDefinition,
