@@ -26,6 +26,7 @@ import { ConfigureResponseCachingOptions } from './http-request-cache';
 import type { ConfigureIngressFiltersOptions, IngressFiltersPolicy } from './ingress-filters';
 import type { ExecutionTagFn } from './execution-tags';
 import type { PropVisibilityDefinition } from './property-visibility';
+import type { ElementSemanticInterfaceMetadata, SemanticInterfaceTypeId } from './semantic-interface';
 
 export type { ISlotInstanceDefinition, ISlotStaticInstanceDefinition, ISlotDefinition };
 export type {
@@ -145,6 +146,21 @@ export type {
     ActionContractByFern,
     FernAuthoringShardFileV1,
 } from './authoring-contract-types';
+
+export {
+    defineInterfaceType,
+    parseSemanticInterfaceTypeId,
+    parseElementSemanticInterfaceDeclaration,
+} from './semantic-interface';
+export type {
+    SemanticInterfaceTypeId,
+    SemanticInterfaceTypeDefinition,
+    InferSemanticInterfaceType,
+    SemanticInterfaceMappingReference,
+    SemanticInterfaceProjectionDeclaration,
+    ElementSemanticInterfaceDeclaration,
+    ElementSemanticInterfaceMetadata,
+} from './semantic-interface';
 
 export {
     PLATFORM_BOUND_LOADER_TYPE_PREFIXES,
@@ -1289,6 +1305,8 @@ type BasePropDefinition = {
     ui?: any;
     default?: any;
     visibleWhen?: PropVisibilityDefinition;
+    /** Adds semantic compatibility without changing this property's structural editor control. */
+    interfaceType?: SemanticInterfaceTypeId;
 };
 
 type PropDefinitionInput<TType = unknown> = BasePropDefinition & {
@@ -1509,7 +1527,8 @@ type SignalInstanceExcludedKeys =
     | 'run'
     | 'hooks'
     | 'reentry'
-    | 'interfaceSubscriptions';
+    | 'interfaceSubscriptions'
+    | 'interfaces';
 
 /** Prop names on `T` that are `$.interface.http` (excluded from hook `this`). */
 type HttpInterfacePropKeys<T> =
@@ -1552,7 +1571,8 @@ type ActionInstanceExcludedKeys =
     | 'noAuth'
     | 'slots'
     | 'hasNew'
-    | 'initValue';
+    | 'initValue'
+    | 'interfaces';
 
 /** Runtime `this` for action `run` (prop values via {@link PropType}, including embedded apps). */
 export type DeriveActionInstance<T> =
@@ -1821,7 +1841,7 @@ export type ActionMethodsWithThis<T> = T &
         : {});
 
 export function defineAction<
-    const T extends ActionMethods & { type: 'action' } & Record<string, unknown>,
+    const T extends ActionMethods & { type: 'action' } & ElementSemanticInterfaceMetadata & Record<string, unknown>,
 >(action: ActionMethodsWithThis<T> & {
     tableAdaptor?: import('./data-adapter').TableAdapterDefinition;
     surfaces?: import('./action-surface').ActionSurfaceDefinitions;
@@ -2042,7 +2062,7 @@ export type SignalStaticMetadata = {
      */
     ingress?: SignalIngressDeclaration;
     producer?: SignalProducerDeclaration;
-};
+} & ElementSemanticInterfaceMetadata;
 
 /** Contextual `this` for top-level and `methods.*` signal functions. */
 export type SignalMethodsWithThis<T> = T &
@@ -2062,6 +2082,20 @@ export function defineSignal<
     >;
 }): T {
     return signal;
+}
+
+/** Source-specialized alias for signal authoring; sources use the same runtime lifecycle contract. */
+export function defineSource<
+    const T extends SignalMethods & SignalStaticMetadata & { type: 'source' } & Record<string, unknown>,
+>(source: SignalMethodsWithThis<T> & {
+    hooks?: SignalHooksWithThis<T>;
+    reentry?: SignalReentryWithThis<T>;
+    interfaceSubscriptions?: RejectUnknownInterfaceSubscriptionKeys<
+        T,
+        SignalInterfaceSubscriptionsWithThis<T>
+    >;
+}): T {
+    return source;
 }
 
 export type RunReturn<T> =

@@ -62,6 +62,7 @@ import { ConfigureResponseCachingOptions } from './http-request-cache';
 import type { ConfigureIngressFiltersOptions, IngressFiltersPolicy } from './ingress-filters';
 import type { ExecutionTagFn } from './execution-tags';
 import type { PropVisibilityDefinition } from './property-visibility';
+import type { ElementSemanticInterfaceMetadata, SemanticInterfaceTypeId } from './semantic-interface';
 export type { ISlotInstanceDefinition, ISlotStaticInstanceDefinition, ISlotDefinition };
 export type { DataAdapterChangeNotification, DataAdapterConfigurationProjection, DataAdapterRefreshDefinition, TableAdapterDefinition, } from './data-adapter';
 export { evaluatePropVisibility } from './property-visibility';
@@ -80,6 +81,8 @@ export { ELEMENT_AUTHORING_CONTRACT_VERSION } from './authoring-contract-types';
 export { SOCKET_STATE_TAG, isKnownExecutionTagKey, } from './execution-tags';
 export type { AuthorExecutionTags, DeclaredExecutionTagFn, ExecutionTagFn, ExecutionTagValue, ExecutionTags, KnownExecutionTagKey, KnownExecutionTags, SocketStateTagValue, } from './execution-tags';
 export type { AuthoringPropWireKind, AuthoringPropContract, SlotBranchAuthoringContract, SlotsAuthoringContract, ActionAuthoringContract, SignalAuthoringContract, ElementAuthoringCatalogContract, ChildStepsPropertyForBranch, ActionPropKeys, ActionContractByFern, FernAuthoringShardFileV1, } from './authoring-contract-types';
+export { defineInterfaceType, parseSemanticInterfaceTypeId, parseElementSemanticInterfaceDeclaration, } from './semantic-interface';
+export type { SemanticInterfaceTypeId, SemanticInterfaceTypeDefinition, InferSemanticInterfaceType, SemanticInterfaceMappingReference, SemanticInterfaceProjectionDeclaration, ElementSemanticInterfaceDeclaration, ElementSemanticInterfaceMetadata, } from './semantic-interface';
 export { PLATFORM_BOUND_LOADER_TYPE_PREFIXES, isPlatformBoundLoaderType, } from './platform-loader-type';
 export { HTTP_REQUEST_CACHE_POLICY_KEY, REPLAY_BINDING_RANGE, REPLAY_META_RANGE, type BodyVaryProjection, type CacheVaryInfoWire, type ConfigureResponseCachingOptions, type DurationWire, type HttpRequestCacheMode, type HttpRequestCachePolicy, type HttpRequestCacheVary, } from './http-request-cache';
 export { INGRESS_FILTERS_KEY, INGRESS_FILTER_TYPES, type ConfigureIngressFiltersOptions, type IngressAuthExtract, type IngressChallengeResponseFilter, type IngressEmitFilter, type IngressFilterDescriptor, type IngressFiltersPolicy, type IngressHMACVerifyFilter, type IngressHttpNewRequestsFilter, type IngressJSONPathMetaFilter, type IngressRespondThenEmitFilter, type IngressValidateSchemaFilter, type IngressValidateJSONSchemaFilter, type IngressValidateZodFilter, type IngressVerifyAuthFilter, type IngressVerifyAuthKind, } from './ingress-filters';
@@ -840,6 +843,8 @@ type BasePropDefinition = {
     ui?: any;
     default?: any;
     visibleWhen?: PropVisibilityDefinition;
+    /** Adds semantic compatibility without changing this property's structural editor control. */
+    interfaceType?: SemanticInterfaceTypeId;
 };
 export type HttpInterfaceType = {
     /**
@@ -978,7 +983,7 @@ export type DeriveSignalInstance<T> = Spread<Omit<T, SignalInstanceExcludedKeys>
     [K in keyof T as K extends SignalInstanceExcludedKeys ? never : K]: T[K];
 }>;
 /** Module definition keys that are not instance fields on `this` in `run` or hooks. */
-type SignalInstanceExcludedKeys = 'props' | 'propDefinitions' | 'methods' | 'run' | 'hooks' | 'reentry' | 'interfaceSubscriptions';
+type SignalInstanceExcludedKeys = 'props' | 'propDefinitions' | 'methods' | 'run' | 'hooks' | 'reentry' | 'interfaceSubscriptions' | 'interfaces';
 /** Prop names on `T` that are `$.interface.http` (excluded from hook `this`). */
 type HttpInterfacePropKeys<T> = T extends {
     props: infer P extends Record<string, unknown>;
@@ -995,7 +1000,7 @@ export type PropDefinitionType<App, PropName extends string> = App extends {
     propDefinitions: Record<string, any>;
 } ? PropName extends keyof App['propDefinitions'] ? PropType<App['propDefinitions'][PropName]> : unknown : unknown;
 /** Module definition keys that are not instance fields on `this` in `run`. */
-type ActionInstanceExcludedKeys = 'props' | 'propDefinitions' | 'methods' | 'run' | 'reentry' | 'interfaceSubscriptions' | 'type' | 'name' | 'description' | 'icon' | 'noAuth' | 'slots' | 'hasNew' | 'initValue';
+type ActionInstanceExcludedKeys = 'props' | 'propDefinitions' | 'methods' | 'run' | 'reentry' | 'interfaceSubscriptions' | 'type' | 'name' | 'description' | 'icon' | 'noAuth' | 'slots' | 'hasNew' | 'initValue' | 'interfaces';
 /** Runtime `this` for action `run` (prop values via {@link PropType}, including embedded apps). */
 export type DeriveActionInstance<T> = Spread<Omit<T, ActionInstanceExcludedKeys> & (T extends {
     props: Record<string, any>;
@@ -1182,7 +1187,7 @@ export type ActionMethodsWithThis<T> = T & ThisType<DeriveActionInstance<T>> & (
 } : {});
 export declare function defineAction<const T extends ActionMethods & {
     type: 'action';
-} & Record<string, unknown>>(action: ActionMethodsWithThis<T> & {
+} & ElementSemanticInterfaceMetadata & Record<string, unknown>>(action: ActionMethodsWithThis<T> & {
     tableAdaptor?: import('./data-adapter').TableAdapterDefinition;
     surfaces?: import('./action-surface').ActionSurfaceDefinitions;
     capabilityClaims?: import('./action-capability').ActionCapabilityClaims;
@@ -1352,7 +1357,7 @@ export type SignalStaticMetadata = {
      */
     ingress?: SignalIngressDeclaration;
     producer?: SignalProducerDeclaration;
-};
+} & ElementSemanticInterfaceMetadata;
 /** Contextual `this` for top-level and `methods.*` signal functions. */
 export type SignalMethodsWithThis<T> = T & ThisType<DeriveSignalInstance<T>> & (T extends {
     methods?: infer M extends Record<string, unknown>;
@@ -1360,6 +1365,14 @@ export type SignalMethodsWithThis<T> = T & ThisType<DeriveSignalInstance<T>> & (
     methods: M & ThisType<DeriveSignalInstance<T>>;
 } : {});
 export declare function defineSignal<const T extends SignalMethods & SignalStaticMetadata & Record<string, unknown>>(signal: SignalMethodsWithThis<T> & {
+    hooks?: SignalHooksWithThis<T>;
+    reentry?: SignalReentryWithThis<T>;
+    interfaceSubscriptions?: RejectUnknownInterfaceSubscriptionKeys<T, SignalInterfaceSubscriptionsWithThis<T>>;
+}): T;
+/** Source-specialized alias for signal authoring; sources use the same runtime lifecycle contract. */
+export declare function defineSource<const T extends SignalMethods & SignalStaticMetadata & {
+    type: 'source';
+} & Record<string, unknown>>(source: SignalMethodsWithThis<T> & {
     hooks?: SignalHooksWithThis<T>;
     reentry?: SignalReentryWithThis<T>;
     interfaceSubscriptions?: RejectUnknownInterfaceSubscriptionKeys<T, SignalInterfaceSubscriptionsWithThis<T>>;

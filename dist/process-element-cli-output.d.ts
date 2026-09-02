@@ -1,6 +1,7 @@
 import type { ISlotDefinition } from './slot-definition';
 import type { ActionSurfaceDefinitions } from './action-surface';
 import type { ActionCapabilityClaims } from './action-capability';
+import type { ElementSemanticInterfaceDeclaration, SemanticInterfaceTypeId } from './semantic-interface';
 /**
  * One flattened prop row from **`process-co` compatibility `loadElementPointers`** (`buildProp` output).
  * Matches **`@process.co/elements`** `IProcessDefinitionUIPointers.props[]` plus loader fields.
@@ -18,6 +19,7 @@ export type ProcessElementPropCliWire = {
     options?: unknown;
     deps?: string[];
     placeholder?: string;
+    interfaceType?: SemanticInterfaceTypeId;
     [key: string]: unknown;
 };
 /**
@@ -41,6 +43,7 @@ export type ProcessElementActionCliWire = {
     hasNew?: boolean;
     initValue?: unknown;
     props?: ProcessElementPropCliWire[];
+    interfaces?: ElementSemanticInterfaceDeclaration;
     [key: string]: unknown;
 };
 /**
@@ -65,6 +68,7 @@ export type ProcessElementSignalCliWire = {
     http?: unknown;
     instant?: boolean;
     props?: ProcessElementPropCliWire[];
+    interfaces?: ElementSemanticInterfaceDeclaration;
     [key: string]: unknown;
 };
 /**

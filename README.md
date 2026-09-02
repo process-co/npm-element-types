@@ -188,6 +188,44 @@ See JSDoc on **`HttpInterfaceSchemaWire`**, **`EnforceSchemaResult`**, and **`PR
 | `SignalEventShape`, `SignalRunOptions` | Inbound event + run parameters |
 | `RunReturn<T>` | Awaited return type of a module’s `run` |
 
+## Semantic interface authoring
+
+Use `defineInterfaceType` to retain a literal, versioned interface identifier
+and infer values from its Zod schema. Actions, signals, and sources can declare
+`interfaces.native`, semantic `inputs`, and explicit projected `outputs`.
+Every projection pins a mapping ID and revision. Properties can independently
+add `interfaceType`; their structural `type` still controls editor rendering.
+
+```ts
+const EmailMessage = defineInterfaceType({
+  id: 'process.email.message@1',
+  title: 'Email message',
+  description: 'A hydrated Internet email message.',
+  schema: emailMessageSchema,
+});
+
+export default defineSource({
+  type: 'source',
+  interfaces: {
+    native: 'process.smtp.inbound-message@1',
+    outputs: [{
+      interfaceType: EmailMessage.id,
+      mapping: {
+        mappingId: 'smtp-to-email',
+        revisionId: 'mapping_rev_1',
+        kind: 'declarative',
+      },
+      lossiness: 'lossless',
+    }],
+  },
+  methods: { async run() {} },
+});
+```
+
+Build and publish tooling materializes this static metadata into authoring
+contract version 3. The compatibility source extractor reads TypeScript syntax
+without evaluating author modules and rejects dynamic semantic declarations.
+
 ## Other exports
 
 - **Slots** — `ISlotDefinition`, builtin action slot registry types.

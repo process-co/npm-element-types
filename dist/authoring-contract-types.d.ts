@@ -1,4 +1,5 @@
 import type { SlotControlDefinition } from './slot-control-definition';
+import type { ElementSemanticInterfaceDeclaration, SemanticInterfaceTypeId } from './semantic-interface';
 /**
  * Locked authoring contract **types only** (published for partners).
  * Runtime: **`@process.co/compatibility`** **`authoring-spec`** — **`authoringCatalogContractFromCliOutput`**, **`materializeAuthoringCatalogFromCliOutput`**, etc.
@@ -7,7 +8,7 @@ import type { SlotControlDefinition } from './slot-control-definition';
  * Bump when this contract changes — regenerate **`@process.co/elements`** **`generate:authoring`** and other codegen consumers.
  * Raw CLI JSON does not carry this; the **contract** is the stable TS surface.
  */
-export declare const ELEMENT_AUTHORING_CONTRACT_VERSION: 2;
+export declare const ELEMENT_AUTHORING_CONTRACT_VERSION: 3;
 /**
  * Normalized prop kind for **`keyof` / conditional types** (not the raw loader string).
  */
@@ -24,6 +25,8 @@ export interface AuthoringPropContract {
      * emission skips these keys.
      */
     readonly excludeFromAuthoringInstanceShape?: boolean;
+    /** Named semantic contract; structural `wireKind` continues to select the editor control. */
+    readonly interfaceType?: SemanticInterfaceTypeId;
 }
 /**
  * One container branch. **`childStepsProperty`** is intentionally a **string literal type** so
@@ -74,6 +77,7 @@ export interface ActionAuthoringContract {
     readonly returnsTypeName?: string;
     readonly props: readonly AuthoringPropContract[];
     readonly slots: SlotsAuthoringContract | null;
+    readonly interfaces?: ElementSemanticInterfaceDeclaration;
 }
 export interface SignalAuthoringContract {
     readonly fern: string;
@@ -81,6 +85,7 @@ export interface SignalAuthoringContract {
     readonly name: string;
     readonly returnsTypeName?: string;
     readonly props: readonly AuthoringPropContract[];
+    readonly interfaces?: ElementSemanticInterfaceDeclaration;
 }
 /**
  * **Canonical object** for TypeScript to hang inference off — not the CLI blob.
