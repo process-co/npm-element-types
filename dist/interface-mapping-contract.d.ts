@@ -162,6 +162,7 @@ export declare const CompiledDeclarativeMappingProgramSchema: z.ZodObject<{
     }, z.core.$strict>>>;
 }, z.core.$strict>;
 export declare const CompiledCustomAdapterArtifactSchema: z.ZodObject<{
+    executionClass: z.ZodLiteral<"interface-value-materializer">;
     runtime: z.ZodEnum<{
         nodejs: "nodejs";
         quickjs: "quickjs";
@@ -169,6 +170,11 @@ export declare const CompiledCustomAdapterArtifactSchema: z.ZodObject<{
     artifactPath: z.ZodString;
     exportName: z.ZodString;
     contentDigest: z.ZodString;
+    limits: z.ZodObject<{
+        timeoutMs: z.ZodNumber;
+        memoryBytes: z.ZodNumber;
+        outputBytes: z.ZodNumber;
+    }, z.core.$strict>;
 }, z.core.$strict>;
 export declare const CompiledInterfaceMappingArtifactSchema: z.ZodObject<{
     descriptor: z.ZodObject<{
@@ -262,6 +268,7 @@ export declare const CompiledInterfaceMappingArtifactSchema: z.ZodObject<{
     }, z.core.$strict>, z.ZodObject<{
         kind: z.ZodLiteral<"custom-adapter">;
         adapter: z.ZodObject<{
+            executionClass: z.ZodLiteral<"interface-value-materializer">;
             runtime: z.ZodEnum<{
                 nodejs: "nodejs";
                 quickjs: "quickjs";
@@ -269,6 +276,11 @@ export declare const CompiledInterfaceMappingArtifactSchema: z.ZodObject<{
             artifactPath: z.ZodString;
             exportName: z.ZodString;
             contentDigest: z.ZodString;
+            limits: z.ZodObject<{
+                timeoutMs: z.ZodNumber;
+                memoryBytes: z.ZodNumber;
+                outputBytes: z.ZodNumber;
+            }, z.core.$strict>;
         }, z.core.$strict>;
     }, z.core.$strict>], "kind">;
 }, z.core.$strict>;

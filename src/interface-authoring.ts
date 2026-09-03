@@ -85,6 +85,11 @@ export type AuthoredCustomInterfaceMapping<
         readonly runtime: 'nodejs' | 'quickjs';
         readonly artifactPath: string;
         readonly exportName: string;
+        readonly limits?: {
+            readonly timeoutMs?: number;
+            readonly memoryBytes?: number;
+            readonly outputBytes?: number;
+        };
     };
 };
 

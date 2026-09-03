@@ -107,6 +107,37 @@ describe('mergeStructuralTypeEvidence', () => {
         });
     });
 
+    it('uses observed structure when the exact build declares a true unknown', () => {
+        const result = mergeStructuralTypeEvidence({
+            buildRunId: 'build-1',
+            structuralArtifactId: 'action-output',
+            declaredSchema: {},
+            observations: [observation('obs-only', {
+                type: 'object',
+                properties: {
+                    vendorId: { type: 'string' },
+                    nested: {
+                        type: 'object',
+                        properties: { count: { type: 'number' } },
+                        required: ['count'],
+                    },
+                },
+                required: ['vendorId', 'nested'],
+            })],
+        });
+
+        expect(result.jsonSchema).toEqual({
+            type: 'object',
+            properties: {
+                vendorId: { type: 'string' },
+                nested: {
+                    type: 'object',
+                    properties: { count: { type: 'number' } },
+                },
+            },
+        });
+    });
+
     it('rejects evidence from another build before merging', () => {
         expect(() => mergeStructuralTypeEvidence({
             buildRunId: 'build-1',

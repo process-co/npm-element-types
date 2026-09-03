@@ -53,6 +53,11 @@ export type AuthoredCustomInterfaceMapping<Source extends SemanticInterfaceRefer
         readonly runtime: 'nodejs' | 'quickjs';
         readonly artifactPath: string;
         readonly exportName: string;
+        readonly limits?: {
+            readonly timeoutMs?: number;
+            readonly memoryBytes?: number;
+            readonly outputBytes?: number;
+        };
     };
 };
 export type AuthoredInterfaceMapping<Source extends SemanticInterfaceReference = SemanticInterfaceReference, Target extends SemanticInterfaceReference = SemanticInterfaceReference> = AuthoredDeclarativeInterfaceMapping<Source, Target> | AuthoredCustomInterfaceMapping<Source, Target>;

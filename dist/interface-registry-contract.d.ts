@@ -440,6 +440,7 @@ export declare const InterfaceRegistryManifestSchema: z.ZodObject<{
         }, z.core.$strict>, z.ZodObject<{
             kind: z.ZodLiteral<"custom-adapter">;
             adapter: z.ZodObject<{
+                executionClass: z.ZodLiteral<"interface-value-materializer">;
                 runtime: z.ZodEnum<{
                     nodejs: "nodejs";
                     quickjs: "quickjs";
@@ -447,6 +448,11 @@ export declare const InterfaceRegistryManifestSchema: z.ZodObject<{
                 artifactPath: z.ZodString;
                 exportName: z.ZodString;
                 contentDigest: z.ZodString;
+                limits: z.ZodObject<{
+                    timeoutMs: z.ZodNumber;
+                    memoryBytes: z.ZodNumber;
+                    outputBytes: z.ZodNumber;
+                }, z.core.$strict>;
             }, z.core.$strict>;
         }, z.core.$strict>], "kind">;
     }, z.core.$strict>>;

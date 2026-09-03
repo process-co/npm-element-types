@@ -71,7 +71,14 @@ function mergeNode(input: {
     const declaredType = schemaType(input.declared);
     const effectiveType = schemaType(input.effective);
     const observedType = schemaType(input.observed);
-    if (effectiveType && observedType && !compatibleTypes(effectiveType, observedType)) {
+    if (!effectiveType && observedType && !declaredType) {
+        for (const key of Object.keys(input.effective)) delete input.effective[key];
+        Object.assign(input.effective, structuredClone(input.observed));
+        // Continue through the normal object recursion so observed requiredness
+        // is removed while its structural information remains available.
+    }
+    const mergedEffectiveType = schemaType(input.effective);
+    if (mergedEffectiveType && observedType && !compatibleTypes(mergedEffectiveType, observedType)) {
         if (declaredType) {
             addDiagnostic(input, 'type-conflict',
                 `Observed type ${observedType} conflicts with declared type ${declaredType}; declared type retained.`);
@@ -84,8 +91,8 @@ function mergeNode(input: {
     }
 
     mergeFormat(input);
-    if (effectiveType === 'object' && observedType === 'object') mergeObject(input);
-    if (effectiveType === 'array' && observedType === 'array') mergeArray(input);
+    if (mergedEffectiveType === 'object' && observedType === 'object') mergeObject(input);
+    if (mergedEffectiveType === 'array' && observedType === 'array') mergeArray(input);
 }
 
 function mergeObject(input: Parameters<typeof mergeNode>[0]) {
@@ -112,7 +119,11 @@ function mergeObject(input: Parameters<typeof mergeNode>[0]) {
 
     // Requiredness comes only from the declaration. Observation-only fields
     // are deliberately optional even when every sample happened to contain them.
-    if (!input.declared) delete input.effective.required;
+    if (Array.isArray(input.declared?.required)) {
+        input.effective.required = structuredClone(input.declared.required);
+    } else {
+        delete input.effective.required;
+    }
 }
 
 function mergeArray(input: Parameters<typeof mergeNode>[0]) {

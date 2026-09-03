@@ -74,6 +74,19 @@ const JsonPointerSchema = z
             .every((segment) => !['__proto__', 'constructor', 'prototype'].includes(segment));
     }, 'Expected an RFC 6901 JSON pointer.');
 
+const ProbabilisticTargetPointerSchema = JsonPointerSchema
+    .refine((pointer) => pointer !== '', 'Root cannot be probabilistic.')
+    .refine((pointer) => ![
+        '/principal',
+        '/security',
+        '/authentication',
+        '/authorization',
+        '/policyDecision',
+        '/context/ingress/principal',
+        '/context/ingress/observations',
+    ].some((prefix) => pointer === prefix || pointer.startsWith(`${prefix}/`)),
+    'Probabilistic mapping cannot write trusted security, identity, observation, or policy state.');
+
 const JsonValueSchema: z.ZodType<unknown> = z.lazy(() => z.union([
     z.null(),
     z.string(),
@@ -139,7 +152,7 @@ export const CompiledInterfaceMappingLimitsSchema = z.object({
 }).strict();
 
 export const CompiledProbabilisticFieldPolicySchema = z.object({
-    targetPointer: JsonPointerSchema.refine((pointer) => pointer !== '', 'Root cannot be probabilistic.'),
+    targetPointer: ProbabilisticTargetPointerSchema,
     resolverRevisionId: RevisionIdSchema,
     evidence: z.array(z.object({
         name: z.string().trim().min(1).max(200),
@@ -166,11 +179,17 @@ export const CompiledDeclarativeMappingProgramSchema = z.object({
 }).strict();
 
 export const CompiledCustomAdapterArtifactSchema = z.object({
+    executionClass: z.literal('interface-value-materializer'),
     runtime: z.enum(['nodejs', 'quickjs']),
     artifactPath: z.string().trim().min(1).max(2_000)
         .refine((path) => !path.startsWith('/') && !path.split('/').includes('..'), 'Artifact path must be relative.'),
     exportName: z.string().regex(/^[A-Za-z_$][A-Za-z0-9_$]{0,199}$/),
     contentDigest: DigestSchema,
+    limits: z.object({
+        timeoutMs: z.number().int().min(1).max(5_000),
+        memoryBytes: z.number().int().min(1).max(128 * 1024 * 1024),
+        outputBytes: z.number().int().min(1).max(64 * 1024 * 1024),
+    }).strict(),
 }).strict();
 
 export const CompiledInterfaceMappingArtifactSchema = z.object({
