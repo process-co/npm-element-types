@@ -21,8 +21,25 @@ export type ActionCapabilityClaim = {
         organizationPath?: string;
         tenantPath?: string;
     };
+    /**
+     * Observable effect produced by this action. The Process host carries this
+     * through policy, execution, UI, and settlement evidence so a provider
+     * draft can never be presented as a committed external action.
+     */
+    effect?: ActionCapabilityEffect;
+};
+export type ActionCapabilityEffect = {
+    disposition: 'observe' | 'prepare' | 'provider-draft' | 'commit';
+    reversibility: 'not-applicable' | 'reversible' | 'compensatable' | 'irreversible';
+    settlement: 'immediate' | 'provider-acknowledged' | 'externally-observed';
 };
 export type ActionCapabilityClaims = readonly ActionCapabilityClaim[];
+/**
+ * Resolve a claim to explicit effect semantics. Well-known capabilities have
+ * canonical semantics that an element cannot weaken; unknown extensions use
+ * their declaration or the conservative irreversible-commit default.
+ */
+export declare function resolveActionCapabilityEffect(claim: Pick<ActionCapabilityClaim, 'capability' | 'effect'>): ActionCapabilityEffect;
 /** Validate and normalize untrusted action capability metadata before ingest. */
 export declare function parseActionCapabilityClaims(value: unknown): ActionCapabilityClaims;
 //# sourceMappingURL=action-capability.d.ts.map

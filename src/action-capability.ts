@@ -21,6 +21,18 @@ export type ActionCapabilityClaim = {
         organizationPath?: string;
         tenantPath?: string;
     };
+    /**
+     * Observable effect produced by this action. The Process host carries this
+     * through policy, execution, UI, and settlement evidence so a provider
+     * draft can never be presented as a committed external action.
+     */
+    effect?: ActionCapabilityEffect;
+};
+
+export type ActionCapabilityEffect = {
+    disposition: 'observe' | 'prepare' | 'provider-draft' | 'commit';
+    reversibility: 'not-applicable' | 'reversible' | 'compensatable' | 'irreversible';
+    settlement: 'immediate' | 'provider-acknowledged' | 'externally-observed';
 };
 
 export type ActionCapabilityClaims = readonly ActionCapabilityClaim[];
@@ -68,6 +80,84 @@ function readOptionalPath(value: unknown, field: string): string | undefined {
     return value;
 }
 
+const CONSERVATIVE_EFFECT: ActionCapabilityEffect = {
+    disposition: 'commit',
+    reversibility: 'irreversible',
+    settlement: 'externally-observed',
+};
+
+const EMAIL_EFFECTS: Record<string, ActionCapabilityEffect> = {
+    'communication.email.account.inspect/v1': observedEffect(),
+    'communication.email.search/v1': observedEffect(),
+    'communication.email.thread.read/v1': observedEffect(),
+    'communication.email.attachment.read/v1': observedEffect(),
+    'communication.email.analytics.read/v1': observedEffect(),
+    'communication.email.draft.compose/v1': providerDraftEffect(),
+    'communication.email.reply.compose/v1': providerDraftEffect(),
+    'communication.email.forward.compose/v1': providerDraftEffect(),
+    'communication.email.send/v1': CONSERVATIVE_EFFECT,
+};
+
+function observedEffect(): ActionCapabilityEffect {
+    return {
+        disposition: 'observe',
+        reversibility: 'not-applicable',
+        settlement: 'immediate',
+    };
+}
+
+function providerDraftEffect(): ActionCapabilityEffect {
+    return {
+        disposition: 'provider-draft',
+        reversibility: 'reversible',
+        settlement: 'provider-acknowledged',
+    };
+}
+
+function sameEffect(left: ActionCapabilityEffect, right: ActionCapabilityEffect): boolean {
+    return left.disposition === right.disposition &&
+        left.reversibility === right.reversibility &&
+        left.settlement === right.settlement;
+}
+
+function readOptionalEffect(
+    value: unknown,
+    capability: string,
+): ActionCapabilityEffect | undefined {
+    if (value === undefined) return undefined;
+    if (!isRecord(value)) {
+        throw new Error(`Action capability claim ${capability} has an invalid effect declaration`);
+    }
+    const dispositions = new Set(['observe', 'prepare', 'provider-draft', 'commit']);
+    const reversibilities = new Set(['not-applicable', 'reversible', 'compensatable', 'irreversible']);
+    const settlements = new Set(['immediate', 'provider-acknowledged', 'externally-observed']);
+    if (
+        typeof value.disposition !== 'string' || !dispositions.has(value.disposition) ||
+        typeof value.reversibility !== 'string' || !reversibilities.has(value.reversibility) ||
+        typeof value.settlement !== 'string' || !settlements.has(value.settlement)
+    ) {
+        throw new Error(`Action capability claim ${capability} has an invalid effect declaration`);
+    }
+    return value as ActionCapabilityEffect;
+}
+
+/**
+ * Resolve a claim to explicit effect semantics. Well-known capabilities have
+ * canonical semantics that an element cannot weaken; unknown extensions use
+ * their declaration or the conservative irreversible-commit default.
+ */
+export function resolveActionCapabilityEffect(
+    claim: Pick<ActionCapabilityClaim, 'capability' | 'effect'>,
+): ActionCapabilityEffect {
+    const canonical = EMAIL_EFFECTS[claim.capability];
+    if (canonical && claim.effect && !sameEffect(canonical, claim.effect)) {
+        throw new Error(
+            `Action capability claim ${claim.capability} conflicts with its canonical effect`,
+        );
+    }
+    return canonical ?? claim.effect ?? CONSERVATIVE_EFFECT;
+}
+
 /** Validate and normalize untrusted action capability metadata before ingest. */
 export function parseActionCapabilityClaims(value: unknown): ActionCapabilityClaims {
     if (!Array.isArray(value) || value.length > MAX_CLAIMS) {
@@ -101,13 +191,17 @@ export function parseActionCapabilityClaims(value: unknown): ActionCapabilityCla
         const inputContract = readOptionalVersionedId(entry.inputContract, 'inputContract');
         const features = readStringList(entry.features, 'features');
         const requiredScopes = readStringList(entry.requiredScopes, 'requiredScopes');
-        return {
+        const effect = readOptionalEffect(entry.effect, entry.capability);
+        const claim: ActionCapabilityClaim = {
             capability: entry.capability,
             ...(inputContract === undefined ? {} : { inputContract }),
             ...(features === undefined ? {} : { features }),
             ...(requiredScopes === undefined ? {} : { requiredScopes }),
             ...(identity === undefined ? {} : { identity }),
+            ...(effect === undefined ? {} : { effect }),
         };
+        resolveActionCapabilityEffect(claim);
+        return claim;
     });
 
     const capabilityIds = claims.map((claim) => claim.capability);

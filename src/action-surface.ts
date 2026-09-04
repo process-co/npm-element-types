@@ -1,3 +1,5 @@
+import type { ActionCapabilityEffect } from './action-capability';
+
 /** JSON-safe value used by declarative action surfaces. */
 export type ActionSurfaceJsonValue =
     | null
@@ -115,6 +117,10 @@ export type ElementActionSurfaceProps<TValue = Record<string, unknown>> = {
     mode?: ActionSurfaceMode;
     execution?: {
         status: ActionSurfaceExecutionStatus;
+        /** Declared effect requested from the immutable action capability. */
+        effect?: ActionCapabilityEffect;
+        /** Present only after a successful execution settlement. */
+        effectOutcome?: 'observed' | 'prepared' | 'provider-drafted' | 'committed';
         invocationId?: string;
         occurredAt?: string;
         actor?: {

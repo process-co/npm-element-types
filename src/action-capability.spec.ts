@@ -1,4 +1,7 @@
-import { parseActionCapabilityClaims } from './action-capability';
+import {
+    parseActionCapabilityClaims,
+    resolveActionCapabilityEffect,
+} from './action-capability';
 
 describe('parseActionCapabilityClaims', () => {
     it('accepts a versioned capability with concrete connection requirements', () => {
@@ -33,5 +36,43 @@ describe('parseActionCapabilityClaims', () => {
             capability: 'communication.email.send/v1',
             identity: { kind: 'email-sender', addressPath: '../secrets' },
         }])).toThrow('safe connection metadata path');
+    });
+
+    it('distinguishes provider drafts from committed email sends', () => {
+        expect(resolveActionCapabilityEffect({
+            capability: 'communication.email.draft.compose/v1',
+        })).toEqual({
+            disposition: 'provider-draft',
+            reversibility: 'reversible',
+            settlement: 'provider-acknowledged',
+        });
+        expect(resolveActionCapabilityEffect({
+            capability: 'communication.email.send/v1',
+        })).toEqual({
+            disposition: 'commit',
+            reversibility: 'irreversible',
+            settlement: 'externally-observed',
+        });
+    });
+
+    it('rejects an element that weakens canonical send semantics', () => {
+        expect(() => parseActionCapabilityClaims([{
+            capability: 'communication.email.send/v1',
+            effect: {
+                disposition: 'provider-draft',
+                reversibility: 'reversible',
+                settlement: 'provider-acknowledged',
+            },
+        }])).toThrow('conflicts with its canonical effect');
+    });
+
+    it('treats an undeclared extension as an irreversible commit', () => {
+        expect(resolveActionCapabilityEffect({
+            capability: 'vendor.records.mutate/v1',
+        })).toEqual({
+            disposition: 'commit',
+            reversibility: 'irreversible',
+            settlement: 'externally-observed',
+        });
     });
 });
