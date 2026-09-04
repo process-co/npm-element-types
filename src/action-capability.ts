@@ -86,7 +86,7 @@ const CONSERVATIVE_EFFECT: ActionCapabilityEffect = {
     settlement: 'externally-observed',
 };
 
-const EMAIL_EFFECTS: Record<string, ActionCapabilityEffect> = {
+const WELL_KNOWN_EFFECTS: Record<string, ActionCapabilityEffect> = {
     'communication.email.account.inspect/v1': observedEffect(),
     'communication.email.search/v1': observedEffect(),
     'communication.email.thread.read/v1': observedEffect(),
@@ -96,6 +96,14 @@ const EMAIL_EFFECTS: Record<string, ActionCapabilityEffect> = {
     'communication.email.reply.compose/v1': providerDraftEffect(),
     'communication.email.forward.compose/v1': providerDraftEffect(),
     'communication.email.send/v1': CONSERVATIVE_EFFECT,
+    'calendar.account.inspect/v1': observedEffect(),
+    'calendar.events.read/v1': observedEffect(),
+    'calendar.availability.compute/v1': observedEffect(),
+    'calendar.event.create/v1': {
+        disposition: 'commit',
+        reversibility: 'compensatable',
+        settlement: 'provider-acknowledged',
+    },
 };
 
 function observedEffect(): ActionCapabilityEffect {
@@ -149,7 +157,7 @@ function readOptionalEffect(
 export function resolveActionCapabilityEffect(
     claim: Pick<ActionCapabilityClaim, 'capability' | 'effect'>,
 ): ActionCapabilityEffect {
-    const canonical = EMAIL_EFFECTS[claim.capability];
+    const canonical = WELL_KNOWN_EFFECTS[claim.capability];
     if (canonical && claim.effect && !sameEffect(canonical, claim.effect)) {
         throw new Error(
             `Action capability claim ${claim.capability} conflicts with its canonical effect`,

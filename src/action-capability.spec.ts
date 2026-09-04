@@ -66,6 +66,30 @@ describe('parseActionCapabilityClaims', () => {
         }])).toThrow('conflicts with its canonical effect');
     });
 
+    it('keeps calendar reads observational and event creation consequential', () => {
+        expect(resolveActionCapabilityEffect({
+            capability: 'calendar.events.read/v1',
+        })).toEqual({
+            disposition: 'observe',
+            reversibility: 'not-applicable',
+            settlement: 'immediate',
+        });
+        expect(resolveActionCapabilityEffect({
+            capability: 'calendar.availability.compute/v1',
+        })).toEqual({
+            disposition: 'observe',
+            reversibility: 'not-applicable',
+            settlement: 'immediate',
+        });
+        expect(resolveActionCapabilityEffect({
+            capability: 'calendar.event.create/v1',
+        })).toEqual({
+            disposition: 'commit',
+            reversibility: 'compensatable',
+            settlement: 'provider-acknowledged',
+        });
+    });
+
     it('treats an undeclared extension as an irreversible commit', () => {
         expect(resolveActionCapabilityEffect({
             capability: 'vendor.records.mutate/v1',
