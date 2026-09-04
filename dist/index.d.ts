@@ -375,6 +375,12 @@ export type SignalHookHostContext = {
         revision: number;
         operationId: string;
         ingressUrl: string;
+        /**
+         * Secret-free provider subscription state from the previous successful
+         * lifecycle operation. Hooks use this to renew or remove the existing
+         * remote resource without creating duplicate subscriptions.
+         */
+        providerResourceRef?: Readonly<Record<string, unknown>>;
     };
 };
 /** Host `params.$` during **`hooks.save`**. */

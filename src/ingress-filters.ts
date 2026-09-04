@@ -46,6 +46,15 @@ export type IngressVerifyAuthFilter = {
     };
 };
 
+/** Verify a provider callback against the exact active SignalProxy resource. */
+export type IngressVerifyProviderEventFilter = {
+    type: 'verify_provider_event';
+    config: {
+        /** Provider evidence is extracted by the edge from a bounded body. */
+        provider: 'microsoft-graph';
+    };
+};
+
 /**
  * Native Go implementation of `http::signal:new-requests`.
  *
@@ -181,6 +190,8 @@ export type IngressChallengeResponseFilter = {
         name: string;
         responseTemplate?: string;
         contentType?: string;
+        /** Continue the chain when no challenge is present. Defaults to false. */
+        optional?: boolean;
     };
 };
 
@@ -200,6 +211,7 @@ export type IngressJSONPathMetaFilter = {
  */
 export type IngressFilterDescriptor =
     | IngressVerifyAuthFilter
+    | IngressVerifyProviderEventFilter
     | IngressValidateSchemaFilter
     | IngressValidateJSONSchemaFilter
     | IngressValidateZodFilter
@@ -225,6 +237,7 @@ export const INGRESS_FILTERS_KEY = '$ingressFilters' as const;
 /** Names accepted at publish time. Keep in sync with the Go filter registry. */
 export const INGRESS_FILTER_TYPES: ReadonlyArray<IngressFilterDescriptor['type']> = [
     'verify_auth',
+    'verify_provider_event',
     'validate_schema',
     'validate_json_schema',
     'validate_zod',

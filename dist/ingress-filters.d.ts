@@ -42,6 +42,14 @@ export type IngressVerifyAuthFilter = {
         provider?: 'slack' | 'teams' | 'discord' | 'google_chat' | 'mattermost' | 'webex' | 'zoom' | 'internal' | 'custom';
     };
 };
+/** Verify a provider callback against the exact active SignalProxy resource. */
+export type IngressVerifyProviderEventFilter = {
+    type: 'verify_provider_event';
+    config: {
+        /** Provider evidence is extracted by the edge from a bounded body. */
+        provider: 'microsoft-graph';
+    };
+};
 /**
  * Native Go implementation of `http::signal:new-requests`.
  *
@@ -170,6 +178,8 @@ export type IngressChallengeResponseFilter = {
         name: string;
         responseTemplate?: string;
         contentType?: string;
+        /** Continue the chain when no challenge is present. Defaults to false. */
+        optional?: boolean;
     };
 };
 /** Set context metadata derived from a JSON path on the request body. */
@@ -185,7 +195,7 @@ export type IngressJSONPathMetaFilter = {
  * must be added here AND registered on the Go edge — `validate-ingress-filters`
  * rejects unknown types at publish time.
  */
-export type IngressFilterDescriptor = IngressVerifyAuthFilter | IngressValidateSchemaFilter | IngressValidateJSONSchemaFilter | IngressValidateZodFilter | IngressEmitFilter | IngressHttpNewRequestsFilter | IngressRespondThenEmitFilter | IngressHMACVerifyFilter | IngressChallengeResponseFilter | IngressJSONPathMetaFilter;
+export type IngressFilterDescriptor = IngressVerifyAuthFilter | IngressVerifyProviderEventFilter | IngressValidateSchemaFilter | IngressValidateJSONSchemaFilter | IngressValidateZodFilter | IngressEmitFilter | IngressHttpNewRequestsFilter | IngressRespondThenEmitFilter | IngressHMACVerifyFilter | IngressChallengeResponseFilter | IngressJSONPathMetaFilter;
 /** Save-only override: hooks.save → `$.http.configureIngressFilters`. */
 export type ConfigureIngressFiltersOptions = {
     filters: IngressFilterDescriptor[];

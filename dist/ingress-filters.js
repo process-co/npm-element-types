@@ -22,6 +22,7 @@ exports.INGRESS_FILTERS_KEY = '$ingressFilters';
 /** Names accepted at publish time. Keep in sync with the Go filter registry. */
 exports.INGRESS_FILTER_TYPES = [
     'verify_auth',
+    'verify_provider_event',
     'validate_schema',
     'validate_json_schema',
     'validate_zod',
@@ -32,4 +33,4 @@ exports.INGRESS_FILTER_TYPES = [
     'challenge_response',
     'jsonpath_meta',
 ];
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiaW5ncmVzcy1maWx0ZXJzLmpzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsiLi4vc3JjL2luZ3Jlc3MtZmlsdGVycy50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUE7Ozs7Ozs7Ozs7Ozs7Ozs7R0FnQkc7OztBQThNVSxRQUFBLG1CQUFtQixHQUFHLGlCQUEwQixDQUFDO0FBRTlELGdGQUFnRjtBQUNuRSxRQUFBLG9CQUFvQixHQUFtRDtJQUNoRixhQUFhO0lBQ2IsaUJBQWlCO0lBQ2pCLHNCQUFzQjtJQUN0QixjQUFjO0lBQ2QsT0FBTztJQUNQLG1CQUFtQjtJQUNuQixtQkFBbUI7SUFDbkIsYUFBYTtJQUNiLG9CQUFvQjtJQUNwQixlQUFlO0NBQ1QsQ0FBQyJ9
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiaW5ncmVzcy1maWx0ZXJzLmpzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsiLi4vc3JjL2luZ3Jlc3MtZmlsdGVycy50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUE7Ozs7Ozs7Ozs7Ozs7Ozs7R0FnQkc7OztBQTBOVSxRQUFBLG1CQUFtQixHQUFHLGlCQUEwQixDQUFDO0FBRTlELGdGQUFnRjtBQUNuRSxRQUFBLG9CQUFvQixHQUFtRDtJQUNoRixhQUFhO0lBQ2IsdUJBQXVCO0lBQ3ZCLGlCQUFpQjtJQUNqQixzQkFBc0I7SUFDdEIsY0FBYztJQUNkLE9BQU87SUFDUCxtQkFBbUI7SUFDbkIsbUJBQW1CO0lBQ25CLGFBQWE7SUFDYixvQkFBb0I7SUFDcEIsZUFBZTtDQUNULENBQUMifQ==
