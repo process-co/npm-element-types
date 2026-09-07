@@ -176,6 +176,27 @@ In element code:
 
 See JSDoc on **`HttpInterfaceSchemaWire`**, **`EnforceSchemaResult`**, and **`PROCESS_CO_ENFORCE_SCHEMA_HOST_PAYLOAD_MARKER`** for RPC envelope details.
 
+## Durable Action definitions
+
+`parseDurableActionDefinitions` validates element-authored, provider-neutral
+lifecycles for actions that remain actionable or observable after one atomic
+call. Definitions compose existing local actions, authored callable FERN selectors,
+or explicitly pinned callables
+with commands, timers, external-resource identity, normalized observations,
+reconciliation, and existing action surfaces.
+
+The authoring contract contains no credentials or inline provider code. Build
+admission must resolve local references and authored selectors into exact versions
+and physical builds before runtime execution. An `authored-callable` binding
+contains a `definitionFern`; it is not an executable `CallableResourceReference`.
+Resolution and runtime ingestion are separate work, not implemented by this parser. Externally mutable
+resources must declare observation or reconciliation, hint observations cannot
+settle a final state directly, and receipt projections cannot expose commands.
+
+See the monorepo
+[Durable Actions architecture](../../docs/durable-actions/ARCHITECTURE.md) for
+the runtime, Event Client, tracked-resource, and card-projection boundaries.
+
 ## Type helpers
 
 | Export | Purpose |
@@ -187,6 +208,8 @@ See JSDoc on **`HttpInterfaceSchemaWire`**, **`EnforceSchemaResult`**, and **`PR
 | `PropType<T>`, `PropDefinitionType<…>` | Prop value types from definitions |
 | `SignalEventShape`, `SignalRunOptions` | Inbound event + run parameters |
 | `RunReturn<T>` | Awaited return type of a module’s `run` |
+| `DurableActionDefinition`, `DurableActionDefinitions` | Versioned state/effect/resource/observation/reconciliation/presentation authoring contract |
+| `parseDurableActionDefinitions` | Validates Durable Action definitions plus references to local actions and action surfaces |
 
 ## Semantic interface authoring
 

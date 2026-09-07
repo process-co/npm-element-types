@@ -89,6 +89,20 @@ export {
 } from './callable-resource';
 
 export {
+  DurableActionLifecycleSchema,
+  DurableActionEffectBindingSchema,
+  DurableActionDefinitionSchema,
+  DurableActionDefinitionsSchema,
+  parseDurableActionDefinitions,
+  type DurableActionLifecycle,
+  type DurableActionEffectBinding,
+  type DurableActionEffect,
+  type DurableActionDefinition,
+  type DurableActionDefinitions,
+  type DurableActionAuthoringReferences,
+} from './durable-action';
+
+export {
   CONTAINER_RUNTIME_ROUTING_SLUG,
   containerRuntimeRangeKey,
 } from './container-runtime-routing';
