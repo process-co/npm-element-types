@@ -1721,6 +1721,10 @@ export interface Signal<P extends Record<string, any> = Record<string, any>> {
     reentry?: SignalReentryDefinition<Signal<P>>;
     interfaceSubscriptions?: SignalInterfaceSubscriptionsDefinition<Signal<P>>;
     producer?: SignalProducerDeclaration;
+    /** Effects of executing this signal, validated against the physical build. */
+    capabilityClaims?: import('./action-capability').ActionCapabilityClaims;
+    /** Capability and scope requirements of options handlers, independent of run. */
+    optionsCapabilityClaims?: import('./action-capability').ActionCapabilityClaims;
 }
 
 type SignalRun<T> = (this: DeriveSignalInstance<T>, params: SignalRunOptions) => Promise<unknown>;
@@ -1922,6 +1926,8 @@ export type ActionDefinitionShape<T> = {
     interfaceSubscriptions?: ActionInterfaceSubscriptionsDefinition<T>;
     surfaces?: import('./action-surface').ActionSurfaceDefinitions;
     capabilityClaims?: import('./action-capability').ActionCapabilityClaims;
+    /** Capability and scope requirements of options handlers, independent of run. */
+    optionsCapabilityClaims?: import('./action-capability').ActionCapabilityClaims;
 };
 
 /** Contextual `this` for top-level and `methods.*` action functions. */
@@ -1937,6 +1943,8 @@ export function defineAction<
     tableAdaptor?: import('./data-adapter').TableAdapterDefinition;
     surfaces?: import('./action-surface').ActionSurfaceDefinitions;
     capabilityClaims?: import('./action-capability').ActionCapabilityClaims;
+    /** Capability and scope requirements of options handlers, independent of run. */
+    optionsCapabilityClaims?: import('./action-capability').ActionCapabilityClaims;
     reentry?: ActionReentryWithThis<T>;
     interfaceSubscriptions?: RejectUnknownInterfaceSubscriptionKeys<
         T,
@@ -2008,6 +2016,10 @@ export type SignalDefinitionShape<T> = {
      */
     ingress?: IngressFiltersPolicy;
     producer?: SignalProducerDeclaration;
+    /** Effects of executing this signal, validated against the physical build. */
+    capabilityClaims?: import('./action-capability').ActionCapabilityClaims;
+    /** Capability and scope requirements of options handlers, independent of run. */
+    optionsCapabilityClaims?: import('./action-capability').ActionCapabilityClaims;
     methods: Record<string, unknown> & {
         run: (this: DeriveSignalInstance<T>, params: SignalRunOptions) => Promise<unknown>;
     };
@@ -2153,6 +2165,10 @@ export type SignalStaticMetadata = {
      */
     ingress?: SignalIngressDeclaration;
     producer?: SignalProducerDeclaration;
+    /** Effects of executing this signal, validated against the physical build. */
+    capabilityClaims?: import('./action-capability').ActionCapabilityClaims;
+    /** Capability and scope requirements of options handlers, independent of run. */
+    optionsCapabilityClaims?: import('./action-capability').ActionCapabilityClaims;
 } & ElementSemanticInterfaceMetadata;
 
 /** Contextual `this` for top-level and `methods.*` signal functions. */
@@ -2212,6 +2228,7 @@ export type ElementUIProps<T> = {
 
 export * from './action-surface';
 export * from './action-capability';
+export * from './credential-verification';
 
 // Utility type to automatically infer the correct this context for methods
 export type WithThis<T> = T extends { methods: Record<string, any>; props: Record<string, any> }
@@ -2223,3 +2240,5 @@ export type WithThis<T> = T extends { methods: Record<string, any>; props: Recor
         };
     }
     : T; 
+
+export * from './options-capability';

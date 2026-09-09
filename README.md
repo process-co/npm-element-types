@@ -270,3 +270,59 @@ To publish to npm, prune/build/sync from the monorepo root — see root **`AGENT
 ## License
 
 ISC
+
+
+### Dynamic options capability declarations
+
+Actions and signals may declare `optionsCapabilityClaims` separately from their
+`capabilityClaims`. Options claims describe the permissions needed to populate
+editor choices; execution claims describe the action or signal itself. A send
+action can therefore use a read capability for its recipient lookup.
+
+```ts
+optionsCapabilityClaims: [{
+  capability: 'calendar.events.read/v1',
+  requiredScopes: ['Calendars.Read'],
+  effect: {
+    disposition: 'observe',
+    reversibility: 'not-applicable',
+    settlement: 'immediate',
+  },
+}]
+```
+
+When supplied, this list must be nonempty and every claim must explicitly declare
+an observational effect. The build registry preserves these claims independently;
+it does not infer options authority from execution claims. Omitting the field
+keeps older packages loadable but does not establish authority for admitted options
+execution. Claims describe requirements; runtime authorization must still check
+the caller, selected connection, policy, and current execution ownership.
+
+### Credential verification actions
+
+A dedicated action can declare `credential.connection.verify/v1` in its normal
+`capabilityClaims`, with the provider scopes needed for its read-only check. This
+capability has canonical observational semantics. Its action must not also claim
+any consequential operation. The existing build metadata and policy path carry
+this declaration; no separate provider test registry is required.
+
+The action returns the explicit `CredentialVerificationResult` contract:
+
+```ts
+{ contract: 'credential.connection.verification/v1', outcome: 'passed' }
+```
+
+Use `outcome: 'failed'` for a completed negative check. Transport failures and
+unfinished execution are not completed verification results. The result contains
+no provider response content, credential identity or execution identity.
+`parseCredentialVerificationResult` rejects legacy `pass` objects and additional
+fields. The application must bind a result to a real admitted execution, its
+physical build, organization, credential and configuration revision before
+writing a verification receipt. Fixture output is not provider verification.
+A passing check establishes only the declared check; it cannot confer additional
+scopes or reactivate revoked OAuth consent. The generic element `test` command
+is not a substitute for this capability.
+
+This SDK contract does not itself enable the application verification service;
+providers and the admitted completion writer must be wired before verification
+can be offered in Connections.

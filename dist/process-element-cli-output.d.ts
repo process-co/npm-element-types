@@ -36,6 +36,7 @@ export type ProcessElementActionCliWire = {
     ui?: string;
     surfaces?: ActionSurfaceDefinitions;
     capabilityClaims?: ActionCapabilityClaims;
+    optionsCapabilityClaims?: ActionCapabilityClaims;
     categoryKey?: string;
     sampleEmit?: unknown;
     returns?: string;
@@ -65,6 +66,8 @@ export type ProcessElementSignalCliWire = {
     icon?: unknown;
     hooks?: boolean;
     producer?: unknown;
+    capabilityClaims?: ActionCapabilityClaims;
+    optionsCapabilityClaims?: ActionCapabilityClaims;
     dedupe?: unknown;
     http?: unknown;
     instant?: boolean;

@@ -87,6 +87,7 @@ const CONSERVATIVE_EFFECT: ActionCapabilityEffect = {
 };
 
 const WELL_KNOWN_EFFECTS: Record<string, ActionCapabilityEffect> = {
+    'credential.connection.verify/v1': observedEffect(),
     'communication.email.account.inspect/v1': observedEffect(),
     'communication.email.search/v1': observedEffect(),
     'communication.email.thread.read/v1': observedEffect(),
@@ -215,6 +216,10 @@ export function parseActionCapabilityClaims(value: unknown): ActionCapabilityCla
     const capabilityIds = claims.map((claim) => claim.capability);
     if (new Set(capabilityIds).size !== capabilityIds.length) {
         throw new Error('An action may only claim a canonical capability once');
+    }
+    if (claims.some(claim => claim.capability === 'credential.connection.verify/v1') &&
+        claims.some(claim => resolveActionCapabilityEffect(claim).disposition !== 'observe')) {
+        throw new Error('Credential verification actions may only declare observational capabilities');
     }
     return claims;
 }

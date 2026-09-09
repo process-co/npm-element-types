@@ -1055,6 +1055,10 @@ export interface Signal<P extends Record<string, any> = Record<string, any>> {
     reentry?: SignalReentryDefinition<Signal<P>>;
     interfaceSubscriptions?: SignalInterfaceSubscriptionsDefinition<Signal<P>>;
     producer?: SignalProducerDeclaration;
+    /** Effects of executing this signal, validated against the physical build. */
+    capabilityClaims?: import('./action-capability').ActionCapabilityClaims;
+    /** Capability and scope requirements of options handlers, independent of run. */
+    optionsCapabilityClaims?: import('./action-capability').ActionCapabilityClaims;
 }
 export type ActionInstance<A extends Action> = DeriveActionInstance<A>;
 export type SignalInstance<S extends Signal> = DeriveSignalInstance<S>;
@@ -1193,6 +1197,8 @@ export type ActionDefinitionShape<T> = {
     interfaceSubscriptions?: ActionInterfaceSubscriptionsDefinition<T>;
     surfaces?: import('./action-surface').ActionSurfaceDefinitions;
     capabilityClaims?: import('./action-capability').ActionCapabilityClaims;
+    /** Capability and scope requirements of options handlers, independent of run. */
+    optionsCapabilityClaims?: import('./action-capability').ActionCapabilityClaims;
 };
 /** Contextual `this` for top-level and `methods.*` action functions. */
 export type ActionMethodsWithThis<T> = T & ThisType<DeriveActionInstance<T>> & (T extends {
@@ -1206,6 +1212,8 @@ export declare function defineAction<const T extends ActionMethods & {
     tableAdaptor?: import('./data-adapter').TableAdapterDefinition;
     surfaces?: import('./action-surface').ActionSurfaceDefinitions;
     capabilityClaims?: import('./action-capability').ActionCapabilityClaims;
+    /** Capability and scope requirements of options handlers, independent of run. */
+    optionsCapabilityClaims?: import('./action-capability').ActionCapabilityClaims;
     reentry?: ActionReentryWithThis<T>;
     interfaceSubscriptions?: RejectUnknownInterfaceSubscriptionKeys<T, ActionInterfaceSubscriptionsWithThis<T>>;
 }): T;
@@ -1257,6 +1265,10 @@ export type SignalDefinitionShape<T> = {
      */
     ingress?: IngressFiltersPolicy;
     producer?: SignalProducerDeclaration;
+    /** Effects of executing this signal, validated against the physical build. */
+    capabilityClaims?: import('./action-capability').ActionCapabilityClaims;
+    /** Capability and scope requirements of options handlers, independent of run. */
+    optionsCapabilityClaims?: import('./action-capability').ActionCapabilityClaims;
     methods: Record<string, unknown> & {
         run: (this: DeriveSignalInstance<T>, params: SignalRunOptions) => Promise<unknown>;
     };
@@ -1372,6 +1384,10 @@ export type SignalStaticMetadata = {
      */
     ingress?: SignalIngressDeclaration;
     producer?: SignalProducerDeclaration;
+    /** Effects of executing this signal, validated against the physical build. */
+    capabilityClaims?: import('./action-capability').ActionCapabilityClaims;
+    /** Capability and scope requirements of options handlers, independent of run. */
+    optionsCapabilityClaims?: import('./action-capability').ActionCapabilityClaims;
 } & ElementSemanticInterfaceMetadata;
 /** Contextual `this` for top-level and `methods.*` signal functions. */
 export type SignalMethodsWithThis<T> = T & ThisType<DeriveSignalInstance<T>> & (T extends {
@@ -1411,6 +1427,7 @@ export type ElementUIProps<T> = {
 };
 export * from './action-surface';
 export * from './action-capability';
+export * from './credential-verification';
 export type WithThis<T> = T extends {
     methods: Record<string, any>;
     props: Record<string, any>;
@@ -1419,4 +1436,5 @@ export type WithThis<T> = T extends {
         [K in keyof T['methods']]: T['methods'][K] extends (...args: infer A) => infer R ? (this: DeriveActionInstance<T>, ...args: A) => R : T['methods'][K];
     };
 } : T;
+export * from './options-capability';
 //# sourceMappingURL=index.d.ts.map
