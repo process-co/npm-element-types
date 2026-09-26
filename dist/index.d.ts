@@ -95,6 +95,7 @@ export type { SemanticInterfaceTypeId, SemanticInterfaceTypeDefinition, InferSem
 export { PLATFORM_BOUND_LOADER_TYPE_PREFIXES, isPlatformBoundLoaderType, } from './platform-loader-type';
 export { HTTP_REQUEST_CACHE_POLICY_KEY, REPLAY_BINDING_RANGE, REPLAY_META_RANGE, type BodyVaryProjection, type CacheVaryInfoWire, type ConfigureResponseCachingOptions, type DurationWire, type HttpRequestCacheMode, type HttpRequestCachePolicy, type HttpRequestCacheVary, } from './http-request-cache';
 export { INGRESS_FILTERS_KEY, INGRESS_FILTER_TYPES, type ConfigureIngressFiltersOptions, type IngressAuthExtract, type IngressChallengeResponseFilter, type IngressEmitFilter, type IngressFilterDescriptor, type IngressFiltersPolicy, type IngressHMACVerifyFilter, type IngressHttpNewRequestsFilter, type IngressJSONPathMetaFilter, type IngressRespondThenEmitFilter, type IngressValidateSchemaFilter, type IngressValidateJSONSchemaFilter, type IngressValidateZodFilter, type IngressVerifyAuthFilter, type IngressVerifyAuthKind, } from './ingress-filters';
+export { resolveDeclaredInterfaceSchema, declaredInterfaceOutputSchema } from './declared-interface-schema';
 export { computeSchemaSourceHash, deriveEdgeValidatorKey, ingressValidationLevelFromSchema, materializeIngressFilterChain, materializeValidationFilter, primaryIngressInputSchema, resolveIngressInputSchemas, resolveIngressInputSchemasFromElementData, resolveValidateSchemaKey, schemaArtifactsFresh, schemaKeyFromPropertyDescriptor, IngressValidateSchemaResolutionError, type IngressInputSchemaWire, type IngressValidationLevel, } from './ingress-schema-materialize';
 export type ModuleDefinition = {
     type: string;
@@ -1034,6 +1035,7 @@ export type DeriveActionInstance<T> = Spread<Omit<T, ActionInstanceExcludedKeys>
 }>;
 export type ModuleWithThis<T> = T & ThisType<DeriveActionInstance<T>>;
 export interface Action<P extends Record<string, any> = Record<string, any>> extends ModuleDefinition {
+    credentialSlots?: import('./credential-runtime-slots').ElementCredentialSlots;
     type: "action";
     props: P;
     run: (this: DeriveActionInstance<Action<P>>, params: ActionRunOptions) => Promise<unknown>;
@@ -1199,6 +1201,8 @@ export type ActionDefinitionShape<T> = {
     capabilityClaims?: import('./action-capability').ActionCapabilityClaims;
     /** Capability and scope requirements of options handlers, independent of run. */
     optionsCapabilityClaims?: import('./action-capability').ActionCapabilityClaims;
+    /** Published source is visible unless this is explicitly false. */
+    sourceVisible?: boolean;
 };
 /** Contextual `this` for top-level and `methods.*` action functions. */
 export type ActionMethodsWithThis<T> = T & ThisType<DeriveActionInstance<T>> & (T extends {
@@ -1214,6 +1218,8 @@ export declare function defineAction<const T extends ActionMethods & {
     capabilityClaims?: import('./action-capability').ActionCapabilityClaims;
     /** Capability and scope requirements of options handlers, independent of run. */
     optionsCapabilityClaims?: import('./action-capability').ActionCapabilityClaims;
+    /** Published source is visible unless this is explicitly false. */
+    sourceVisible?: boolean;
     reentry?: ActionReentryWithThis<T>;
     interfaceSubscriptions?: RejectUnknownInterfaceSubscriptionKeys<T, ActionInterfaceSubscriptionsWithThis<T>>;
 }): T;
@@ -1336,6 +1342,12 @@ export type SignalProducerDeclaration = {
     /** Provider-managed webhook/event subscription with fixed, immediate acknowledgement. */
     kind: 'webEvent';
     provider: string;
+    /** Deliver the normalized, redacted captured ingress through the compiled
+     * input projection. No run/$emit transformation is replayed on delivery. */
+    delivery?: {
+        kind: 'captured-ingress';
+        version: 1;
+    };
     authentication?: 'none' | 'provider' | 'hmac' | 'custom';
     capture?: {
         retentionSeconds?: number;
@@ -1388,6 +1400,8 @@ export type SignalStaticMetadata = {
     capabilityClaims?: import('./action-capability').ActionCapabilityClaims;
     /** Capability and scope requirements of options handlers, independent of run. */
     optionsCapabilityClaims?: import('./action-capability').ActionCapabilityClaims;
+    /** Published source is visible unless this is explicitly false. */
+    sourceVisible?: boolean;
 } & ElementSemanticInterfaceMetadata;
 /** Contextual `this` for top-level and `methods.*` signal functions. */
 export type SignalMethodsWithThis<T> = T & ThisType<DeriveSignalInstance<T>> & (T extends {
@@ -1437,4 +1451,7 @@ export type WithThis<T> = T extends {
     };
 } : T;
 export * from './options-capability';
+export * from './oauth-provider-manifest';
+export * from './credential-runtime-slots';
+export * from './credential-execution-plan';
 //# sourceMappingURL=index.d.ts.map

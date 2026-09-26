@@ -1,3 +1,4 @@
+import type { SlotControlRuntimeDefinition } from './slot-control-definition';
 import type { ISlotDefinition } from './slot-definition';
 import type { ActionSurfaceDefinitions } from './action-surface';
 import type { ActionCapabilityClaims } from './action-capability';
@@ -6,6 +7,7 @@ import type {
   SemanticInterfaceTypeId,
 } from './semantic-interface';
 import type { InterfaceRegistryManifest } from './interface-registry-contract';
+import type { IngressFiltersPolicy } from './ingress-filters';
 
 /**
  * One flattened prop row from **`process-co` compatibility `loadElementPointers`** (`buildProp` output).
@@ -33,6 +35,7 @@ export type ProcessElementPropCliWire = {
  * This is what sits in **`IProcessDefinitionUIInfo.actions[]`** after the process loader runs.
  */
 export type ProcessElementActionCliWire = {
+  credentialSlots?: import('./credential-runtime-slots').ElementCredentialSlots;
   type: 'action';
   key: string;
   name: string;
@@ -46,6 +49,9 @@ export type ProcessElementActionCliWire = {
   sampleEmit?: unknown;
   returns?: string;
   slots?: ISlotDefinition;
+  runtime?: SlotControlRuntimeDefinition;
+  /** Author-controlled published-source disclosure; omitted inherits visible. */
+  sourceVisible?: boolean;
   noAuth?: boolean;
   hasNew?: boolean;
   initValue?: unknown;
@@ -70,13 +76,17 @@ export type ProcessElementSignalCliWire = {
   hasNew?: boolean;
   initValue?: unknown;
   icon?: unknown;
+  ingress?: IngressFiltersPolicy;
   hooks?: boolean;
+  hookKinds?: Array<'save' | 'activate' | 'deactivate' | 'destroy'>;
   producer?: unknown;
   capabilityClaims?: ActionCapabilityClaims;
   optionsCapabilityClaims?: ActionCapabilityClaims;
   dedupe?: unknown;
   http?: unknown;
   instant?: boolean;
+  /** Author-controlled published-source disclosure; omitted inherits visible. */
+  sourceVisible?: boolean;
   props?: ProcessElementPropCliWire[];
   interfaces?: ElementSemanticInterfaceDeclaration;
   [key: string]: unknown;

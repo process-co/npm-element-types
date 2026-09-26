@@ -285,6 +285,8 @@ export {
     type IngressVerifyAuthKind,
 } from './ingress-filters';
 
+export { resolveDeclaredInterfaceSchema, declaredInterfaceOutputSchema } from './declared-interface-schema';
+
 export {
     computeSchemaSourceHash,
     deriveEdgeValidatorKey,
@@ -1699,6 +1701,7 @@ export type ModuleWithThis<T> = T & ThisType<DeriveActionInstance<T>>;
 
 // Action-specific types
 export interface Action<P extends Record<string, any> = Record<string, any>> extends ModuleDefinition {
+    credentialSlots?: import('./credential-runtime-slots').ElementCredentialSlots;
     type: "action";
     props: P;
     run: (this: DeriveActionInstance<Action<P>>, params: ActionRunOptions) => Promise<unknown>;
@@ -1928,6 +1931,8 @@ export type ActionDefinitionShape<T> = {
     capabilityClaims?: import('./action-capability').ActionCapabilityClaims;
     /** Capability and scope requirements of options handlers, independent of run. */
     optionsCapabilityClaims?: import('./action-capability').ActionCapabilityClaims;
+    /** Published source is visible unless this is explicitly false. */
+    sourceVisible?: boolean;
 };
 
 /** Contextual `this` for top-level and `methods.*` action functions. */
@@ -1945,6 +1950,8 @@ export function defineAction<
     capabilityClaims?: import('./action-capability').ActionCapabilityClaims;
     /** Capability and scope requirements of options handlers, independent of run. */
     optionsCapabilityClaims?: import('./action-capability').ActionCapabilityClaims;
+    /** Published source is visible unless this is explicitly false. */
+    sourceVisible?: boolean;
     reentry?: ActionReentryWithThis<T>;
     interfaceSubscriptions?: RejectUnknownInterfaceSubscriptionKeys<
         T,
@@ -2114,6 +2121,9 @@ export type SignalProducerDeclaration =
         /** Provider-managed webhook/event subscription with fixed, immediate acknowledgement. */
         kind: 'webEvent';
         provider: string;
+        /** Deliver the normalized, redacted captured ingress through the compiled
+         * input projection. No run/$emit transformation is replayed on delivery. */
+        delivery?: { kind: 'captured-ingress'; version: 1 };
         authentication?: 'none' | 'provider' | 'hmac' | 'custom';
         capture?: {
             retentionSeconds?: number;
@@ -2169,6 +2179,8 @@ export type SignalStaticMetadata = {
     capabilityClaims?: import('./action-capability').ActionCapabilityClaims;
     /** Capability and scope requirements of options handlers, independent of run. */
     optionsCapabilityClaims?: import('./action-capability').ActionCapabilityClaims;
+    /** Published source is visible unless this is explicitly false. */
+    sourceVisible?: boolean;
 } & ElementSemanticInterfaceMetadata;
 
 /** Contextual `this` for top-level and `methods.*` signal functions. */
@@ -2242,3 +2254,8 @@ export type WithThis<T> = T extends { methods: Record<string, any>; props: Recor
     : T; 
 
 export * from './options-capability';
+
+export * from './oauth-provider-manifest';
+
+export * from './credential-runtime-slots';
+export * from './credential-execution-plan';

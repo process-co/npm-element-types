@@ -29,6 +29,44 @@ npm install git+https://github.com/process-co/npm-element-types.git#main
 
 ## Element modules
 
+Actions, signals, and sources expose their selected source entry read-only by
+default. Authors may set `sourceVisible: false` on a definition to withhold that
+entry from consumers. Leaving the field out preserves the default; it does not
+copy a visibility setting into the definition. This setting does not grant
+repository access or execution rights.
+
+Keep secret values out of connector source and compiled artifacts. Declare
+credential requirements and secret references; runtime authorization resolves
+the values independently of source visibility.
+
+### Credential targets for owned actions
+
+An authenticated action exposed through a source offer must declare where each
+credential belongs. These declarations contain references, never secret values:
+
+```typescript
+credentialSlots: [
+  { id: 'sender', providerId: 'microsoft', path: ['outlook'] },
+  { id: 'recipient', providerId: 'microsoft', path: ['otherOutlook'] },
+]
+```
+
+Each path follows app properties from the action; an explicit empty path `[]`
+targets the action's own `$auth`. Every authenticated app needs its own slot.
+Slot IDs and paths must be unique, even when two app properties use the same
+module. The source offer maps each credential requirement with
+`runtimeBinding: { kind: 'element-auth', slot: 'sender' }` and the matching
+`providerId`. Builds reject missing or conflicting mappings. Authenticated
+owned actions require a rebuild with this declaration; no first-account fallback
+is inferred. Runtime support must be enabled by the host before such an offer
+can execute.
+
+Runtime integrations use `ElementCredentialLayoutSchema` for the sealed
+requirement-to-slot mapping and `ElementCredentialExecutionPlanSchema` for its
+per-invocation join with admitted credential references. Both enforce complete,
+unique slot coverage. Execution plans contain no secret values and must be
+constructed by the trusted execution service, never from action inputs.
+
 ### App (`defineApp`)
 
 ```typescript
