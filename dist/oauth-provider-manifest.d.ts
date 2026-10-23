@@ -37,6 +37,10 @@ export declare const OAuthProviderManifestSchema: z.ZodObject<{
         client_secret_post: "client_secret_post";
         client_secret_basic: "client_secret_basic";
     }>>;
+    token_endpoint_basic_encoding: z.ZodOptional<z.ZodEnum<{
+        "form-base64": "form-base64";
+        "raw-base64url": "raw-base64url";
+    }>>;
     token_endpoint_auth_signing_alg: z.ZodOptional<z.ZodNullable<z.ZodEnum<{
         RS256: "RS256";
         PS256: "PS256";

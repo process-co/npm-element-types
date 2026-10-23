@@ -115,6 +115,7 @@ export const CompiledInterfaceDefinitionArtifactSchema = z.object({
 export const CompiledStructuralTypeArtifactSchema = z.object({
     artifactId: IdSchema,
     role: z.enum(['input', 'output']),
+    outputMode: z.literal('none').optional(),
     /** Author-authored TypeScript source used by the existing Monaco/codegen path. */
     typescript: z.object({
         source: z.string().trim().min(1).max(1_000_000),
@@ -129,8 +130,10 @@ export const CompiledStructuralTypeArtifactSchema = z.object({
     jsonSchema: z.record(z.string(), z.unknown()).optional(),
     contentDigest: DigestSchema,
 }).strict().refine(
-    ({ typescript, declaration, jsonSchema }) =>
-        typescript !== undefined || declaration !== undefined || jsonSchema !== undefined,
+    ({ role, typescript, declaration, jsonSchema, outputMode }) =>
+        outputMode === 'none'
+            ? role === 'output' && typescript?.source === 'void' && jsonSchema === undefined
+            : typescript !== undefined || declaration !== undefined || jsonSchema !== undefined,
     'A structural artifact requires TypeScript source, a declaration, or JSON Schema.',
 );
 

@@ -30,6 +30,8 @@ export type CallableContract = {
   /** Portable JSON Schema owned by the callable version. */
   inputSchema?: unknown;
   successSchema?: unknown;
+  /** Explicitly records an action that completes without a JSON result. */
+  successMode?: 'none';
   errorSchema?: unknown;
 };
 
@@ -141,7 +143,10 @@ export const CallableResourceReferenceSchema: z.ZodType<CallableResourceReferenc
     artifactKey: z.string().trim().min(1),
     artifactIdentity: z.string().trim().min(1),
   }).strict().optional(),
-  contract: z.object({ inputSchema: z.unknown().optional(), successSchema: z.unknown().optional(), errorSchema: z.unknown().optional() }).strict().optional(),
+  contract: z.object({ inputSchema: z.unknown().optional(), successSchema: z.unknown().optional(),
+    successMode: z.literal('none').optional(), errorSchema: z.unknown().optional() }).strict()
+    .refine(contract => contract.successMode !== 'none' || contract.successSchema === false,
+      'A no-output callable contract requires the false success schema.').optional(),
 }).strict().superRefine((resource, ctx) => {
   if (resource.runtimeTarget && resource.version.mode !== 'pinned') {
     ctx.addIssue({

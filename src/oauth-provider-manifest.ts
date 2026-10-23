@@ -25,6 +25,8 @@ export const OAuthProviderManifestSchema = z.object({
         sign_assertion: z.boolean().optional(),
     }).strict().optional(),
     token_endpoint_auth_method: z.enum(['none', 'client_secret_post', 'client_secret_basic', 'private_key_jwt']).optional(),
+    /** Airtable requires raw client material encoded as base64url instead of OAuth form/base64. */
+    token_endpoint_basic_encoding: z.enum(['form-base64', 'raw-base64url']).optional(),
     token_endpoint_auth_signing_alg: z.enum(['RS256', 'PS256']).nullable().optional(),
     refresh: z.object({
         supported: z.boolean().optional(),
@@ -48,6 +50,10 @@ export const OAuthProviderManifestSchema = z.object({
         retryHeaders: z.array(z.string()).optional(),
         claimsChallengeHeader: z.string().optional(),
     }).strict().optional(),
-}).strict();
+}).strict().superRefine((manifest, context) => {
+    if (manifest.token_endpoint_basic_encoding && manifest.token_endpoint_auth_method !== 'client_secret_basic') {
+        context.addIssue({ code: 'custom', path: ['token_endpoint_basic_encoding'], message: 'Basic encoding requires Basic client authentication' });
+    }
+});
 
 export type OAuthProviderManifest = z.infer<typeof OAuthProviderManifestSchema>;

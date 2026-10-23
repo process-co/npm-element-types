@@ -19,6 +19,8 @@ export type CallableContract = {
     /** Portable JSON Schema owned by the callable version. */
     inputSchema?: unknown;
     successSchema?: unknown;
+    /** Explicitly records an action that completes without a JSON result. */
+    successMode?: 'none';
     errorSchema?: unknown;
 };
 /**

@@ -183,6 +183,7 @@ export declare const CompiledStructuralTypeArtifactSchema: z.ZodObject<{
         input: "input";
         output: "output";
     }>;
+    outputMode: z.ZodOptional<z.ZodLiteral<"none">>;
     typescript: z.ZodOptional<z.ZodObject<{
         source: z.ZodString;
         typeName: z.ZodOptional<z.ZodString>;
@@ -336,6 +337,7 @@ export declare const InterfaceRegistryManifestSchema: z.ZodObject<{
             input: "input";
             output: "output";
         }>;
+        outputMode: z.ZodOptional<z.ZodLiteral<"none">>;
         typescript: z.ZodOptional<z.ZodObject<{
             source: z.ZodString;
             typeName: z.ZodOptional<z.ZodString>;

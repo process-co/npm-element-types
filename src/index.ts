@@ -2259,3 +2259,4 @@ export * from './oauth-provider-manifest';
 
 export * from './credential-runtime-slots';
 export * from './credential-execution-plan';
+export * from './published-element-key';
