@@ -164,8 +164,10 @@ export type IngressHMACVerifyFilter = {
         signatureEncoding?: 'hex' | 'base64';
         /** Optional prefix on the signature value (e.g. `'sha256='`). */
         signaturePrefix?: string;
-        /** Secret material is resolved by the auth-check service. */
+        /** Registration binds namespace:<provider>:client_secret to its selected OAuth application. */
         secretRef: string;
+        /** Exact provider routing headers; declared custom_fields are bound during registration. */
+        expectedHeaders?: Record<string, string>;
     };
 };
 /**
