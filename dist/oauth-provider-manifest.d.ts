@@ -16,6 +16,10 @@ export declare const OAuthProviderManifestSchema: z.ZodObject<{
     token_endpoint: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     scopeDelimiter: z.ZodOptional<z.ZodString>;
     pathVars: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    callbackVerification: z.ZodOptional<z.ZodObject<{
+        kind: z.ZodLiteral<"shopify-query-hmac">;
+        shopDomain: z.ZodString;
+    }, z.core.$strict>>;
     authParams: z.ZodOptional<z.ZodObject<{
         authorization_endpoint: z.ZodOptional<z.ZodNullable<z.ZodString>>;
         include_pkce: z.ZodOptional<z.ZodBoolean>;

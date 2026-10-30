@@ -12,6 +12,11 @@ export const OAuthProviderManifestSchema = z.object({
     token_endpoint: z.string().nullable().optional(),
     scopeDelimiter: z.string().optional(),
     pathVars: z.array(z.string()).optional(),
+    /** Additional provider callback proof, checked after single-use state admission. */
+    callbackVerification: z.object({
+        kind: z.literal('shopify-query-hmac'),
+        shopDomain: z.string().max(512).regex(/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?|\{\{\s*custom_fields\.[A-Za-z][A-Za-z0-9_]*\s*\}\})\.myshopify\.com$/),
+    }).strict().optional(),
     authParams: z.object({
         authorization_endpoint: z.string().nullable().optional(),
         include_pkce: z.boolean().optional(),
