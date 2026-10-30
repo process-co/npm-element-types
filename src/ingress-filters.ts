@@ -171,6 +171,8 @@ export type IngressHMACVerifyFilter = {
     config: {
         algorithm: 'sha1' | 'sha256' | 'sha512';
         signatureHeader: string;
+        /** Raw-body signature encoding; Shopify uses base64, GitHub uses hex. */
+        signatureEncoding?: 'hex' | 'base64';
         /** Optional prefix on the signature value (e.g. `'sha256='`). */
         signaturePrefix?: string;
         /** Secret material is resolved by the auth-check service. */
