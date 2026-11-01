@@ -285,6 +285,8 @@ export {
     type IngressVerifyAuthKind,
 } from './ingress-filters';
 
+export { IngressFiltersValidationError, normalizeIngressHmacFilter } from './ingress-filter-validation';
+
 export { resolveDeclaredInterfaceSchema, declaredInterfaceOutputSchema } from './declared-interface-schema';
 
 export {
