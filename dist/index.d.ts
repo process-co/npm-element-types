@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+export type { SignalSimulationDeclaration, SignalSimulationUiProps, SignalSimulationValue } from './signal-simulation';
 import './schema-documentation';
 export type ElementString = {
     type: "string";
@@ -1058,6 +1059,8 @@ export interface Signal<P extends Record<string, any> = Record<string, any>> {
     reentry?: SignalReentryDefinition<Signal<P>>;
     interfaceSubscriptions?: SignalInterfaceSubscriptionsDefinition<Signal<P>>;
     producer?: SignalProducerDeclaration;
+    /** Optional pure event input UI and native emitted-value sample for isolated tests. */
+    simulation?: import('./signal-simulation').SignalSimulationDeclaration;
     /** Effects of executing this signal, validated against the physical build. */
     capabilityClaims?: import('./action-capability').ActionCapabilityClaims;
     /** Capability and scope requirements of options handlers, independent of run. */
@@ -1272,6 +1275,8 @@ export type SignalDefinitionShape<T> = {
      */
     ingress?: IngressFiltersPolicy;
     producer?: SignalProducerDeclaration;
+    /** Optional pure event input UI and native emitted-value sample for isolated tests. */
+    simulation?: import('./signal-simulation').SignalSimulationDeclaration;
     /** Effects of executing this signal, validated against the physical build. */
     capabilityClaims?: import('./action-capability').ActionCapabilityClaims;
     /** Capability and scope requirements of options handlers, independent of run. */
@@ -1397,6 +1402,8 @@ export type SignalStaticMetadata = {
      */
     ingress?: SignalIngressDeclaration;
     producer?: SignalProducerDeclaration;
+    /** Optional pure event input UI and native emitted-value sample for isolated tests. */
+    simulation?: import('./signal-simulation').SignalSimulationDeclaration;
     /** Effects of executing this signal, validated against the physical build. */
     capabilityClaims?: import('./action-capability').ActionCapabilityClaims;
     /** Capability and scope requirements of options handlers, independent of run. */
