@@ -784,6 +784,10 @@ export interface FlowControlExtensions {
     $$slotId?: string;
 }
 export interface ProcessFunctions<ReentryName extends string = string> {
+    /**
+     * Export JSON data. Optional object fields are omitted when undefined at
+     * serialization; root values and array entries must be defined JSON values.
+     */
     export: (key: string, value: JSONValue) => void;
     /**
      * Attach a {@link ExecutionTagFn tag} to the current execution for UI
@@ -833,11 +837,6 @@ type Expand<T> = T extends object ? {
 type InferZodOutput<T> = T extends {
     _output: infer O;
 } ? O : never;
-type InferZodObjectShape<T> = T extends {
-    shape: infer Shape extends Record<string, z.ZodTypeAny>;
-} ? Expand<{
-    [K in keyof Shape]: InferZodOutput<Shape[K]>;
-}> : never;
 type InferType<T extends string> = T extends `$infer<${infer Inner}>` ? ParseUnion<Inner> : any;
 type PropOptionValue<T> = T extends {
     value: infer V;
@@ -903,7 +902,7 @@ export type HttpInterfaceType = {
         [key: string]: any;
     }>;
 };
-type PropTypeFromTypeValue<U, T = unknown> = U extends z.ZodObject<any, any> ? InferZodObjectShape<U> : U extends z.ZodArray<infer Item> ? Expand<Array<InferZodOutput<Item>>> : U extends z.ZodTypeAny ? Expand<InferZodOutput<U>> : U extends "http_request" ? {
+type PropTypeFromTypeValue<U, T = unknown> = U extends z.ZodArray<infer Item> ? Expand<Array<InferZodOutput<Item>>> : U extends z.ZodTypeAny ? Expand<InferZodOutput<U>> : U extends "http_request" ? {
     execute: () => Promise<{
         headers?: Record<string, string>;
         [key: string]: any;
