@@ -205,6 +205,26 @@ resolveSignalHookIsDraft({ executionContext: 'production' }); // false
 
 ## HTTP interface schema validation
 
+`$.interface.schema` properties can declare an emitted-value binding in
+`typeOptions.outputBinding`. For an HTTP body schema:
+
+```ts
+typeOptions: {
+  outputBinding: {
+    path: ['body'],
+    rootWhen: { property: 'eventData', equals: 'body' },
+  },
+}
+```
+
+The editor and workflow type compiler place the configured schema at `event.body`
+while preserving the native envelope. Selecting Body Only uses it at the event
+root. A missing selector value uses the property declaration's default. Local JSON
+Schema references are rebased when nested; input schemas are not mutated. This is
+type metadata, not a request to validate the envelope. Unannotated definitions keep
+their existing root output behavior; publish the definition only after compatible
+editor/compiler readers are deployed.
+
 Design-time schema blobs on `$.interface.schema` are described by **`HttpInterfaceSchemaWire`**. When **`validation`** is enabled, the runtime loads the compiled Zod ESM at **`compiledValidatorKey`** and validates through the host — not by parsing `exportSchema` JSON alone.
 
 In element code:

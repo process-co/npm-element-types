@@ -289,6 +289,7 @@ export {
 export { IngressFiltersValidationError, normalizeIngressHmacFilter } from './ingress-filter-validation';
 
 export { resolveDeclaredInterfaceSchema, declaredInterfaceOutputSchema } from './declared-interface-schema';
+export { InterfaceSchemaOutputBindingSchema, hasInterfaceSchemaOutputBinding, projectInterfaceSchemaOutput, type InterfaceSchemaOutputBinding } from './interface-schema-output';
 
 export {
     computeSchemaSourceHash,

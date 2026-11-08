@@ -98,6 +98,7 @@ export { HTTP_REQUEST_CACHE_POLICY_KEY, REPLAY_BINDING_RANGE, REPLAY_META_RANGE,
 export { INGRESS_FILTERS_KEY, INGRESS_FILTER_TYPES, type ConfigureIngressFiltersOptions, type IngressAuthExtract, type IngressChallengeResponseFilter, type IngressEmitFilter, type IngressFilterDescriptor, type IngressFiltersPolicy, type IngressHMACVerifyFilter, type IngressHttpNewRequestsFilter, type IngressJSONPathMetaFilter, type IngressRespondThenEmitFilter, type IngressValidateSchemaFilter, type IngressValidateJSONSchemaFilter, type IngressValidateZodFilter, type IngressVerifyAuthFilter, type IngressVerifyAuthKind, } from './ingress-filters';
 export { IngressFiltersValidationError, normalizeIngressHmacFilter } from './ingress-filter-validation';
 export { resolveDeclaredInterfaceSchema, declaredInterfaceOutputSchema } from './declared-interface-schema';
+export { InterfaceSchemaOutputBindingSchema, hasInterfaceSchemaOutputBinding, projectInterfaceSchemaOutput, type InterfaceSchemaOutputBinding } from './interface-schema-output';
 export { computeSchemaSourceHash, deriveEdgeValidatorKey, ingressValidationLevelFromSchema, materializeIngressFilterChain, materializeValidationFilter, primaryIngressInputSchema, resolveIngressInputSchemas, resolveIngressInputSchemasFromElementData, resolveValidateSchemaKey, schemaArtifactsFresh, schemaKeyFromPropertyDescriptor, IngressValidateSchemaResolutionError, type IngressInputSchemaWire, type IngressValidationLevel, } from './ingress-schema-materialize';
 export type ModuleDefinition = {
     type: string;
