@@ -360,6 +360,10 @@ export interface SignalRunHostServices<ReentryName extends string = string> {
     runtime?: ProcessRuntimeContext;
     /** Logical Process Table access scoped to this execution. */
     table: TableRunHostServices;
+    /** Pause after this invocation. A matching event or the original deadline
+     * resumes the declared method in the same execution; checks never advance it.
+     * Requires a current organization deployment binding. */
+    waitForEvent(namedMethod: ReentryName, options: WorkflowEventWaitOptions<ReentryName>): Promise<WorkflowEventWaitHandle>;
     /** Mint a branded, one-shot callback into a declared `reentry` method. */
     continuation(namedMethod: ReentryName, options?: WorkflowContinuationOptions): Promise<WorkflowContinuationHandle>;
     /** @deprecated Prefer {@link SignalRunHostServices.continuation}. */
@@ -770,6 +774,29 @@ export type WorkflowContinuationTimeoutSignal = {
     /** UTC RFC 3339 timestamp of the deadline that won the one-shot race. */
     deadlineAt: string;
 };
+/** A durable event subscription on the existing workflow execution. */
+export type WorkflowEventWaitOptions<ReentryName extends string = string> = {
+    subscription: {
+        organizationId: string;
+        contextId: string;
+        stepId: string;
+        generation: string;
+        subjectRef: string;
+        minimumVersion: number;
+        eventTypes: string[];
+    };
+    /** Fixed from first registration; retries and pending checks do not extend it. */
+    deadlineSeconds: number;
+    /** A declared method returning pending, or ready with a matching event. */
+    check?: {
+        method: ReentryName;
+        intervalSeconds: number;
+    };
+};
+export type WorkflowEventWaitHandle = {
+    jti: string;
+    deadlineAt: number;
+};
 export type WorkflowContinuationHandle = {
     /** Branded, host-bound URL using the options supplied while minting. */
     url: string;
@@ -799,6 +826,10 @@ export interface ProcessFunctions<ReentryName extends string = string> {
     tag: ExecutionTagFn;
     /** Logical Process Table access scoped to this execution. */
     table: TableRunHostServices;
+    /** Pause after this invocation. A matching event or the original deadline
+     * resumes the declared method in the same execution; checks never advance it.
+     * Requires a current organization deployment binding. */
+    waitForEvent(namedMethod: ReentryName, options: WorkflowEventWaitOptions<ReentryName>): Promise<WorkflowEventWaitHandle>;
     /** Mint a branded, one-shot callback into a declared `reentry` method. */
     continuation(namedMethod: ReentryName, options?: WorkflowContinuationOptions): Promise<WorkflowContinuationHandle>;
     /** @deprecated Prefer {@link ProcessFunctions.continuation}. */
@@ -1342,6 +1373,10 @@ export type SignalIngressDeclaration = IngressFiltersPolicy;
  * kind determines admission, acknowledgement, replay, and lifecycle behavior.
  */
 export type SignalProducerDeclaration = {
+    /** Platform-produced setup event. No HTTP ingress or authored credentials. */
+    kind: 'organizationSetup';
+    eventType: 'setup.requested' | 'setup.authorization-changed' | 'setup.prerequisite-resolved' | 'setup.follow-up-due';
+} | {
     /** Process-owned HTTP endpoint whose downstream workflow may author the response. */
     kind: 'processWebhook';
 } | {
