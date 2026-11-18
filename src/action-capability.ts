@@ -90,6 +90,7 @@ const WELL_KNOWN_EFFECTS: Record<string, ActionCapabilityEffect> = {
     'credential.connection.verify/v1': observedEffect(),
     'communication.email.account.inspect/v1': observedEffect(),
     'communication.email.search/v1': observedEffect(),
+    'communication.email.inbox.search/v1': observedEffect(),
     'communication.email.thread.read/v1': observedEffect(),
     'communication.email.attachment.read/v1': observedEffect(),
     'communication.email.analytics.read/v1': observedEffect(),
