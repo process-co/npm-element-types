@@ -51,7 +51,7 @@ export type IngressVerifyProviderEventFilter = {
     type: 'verify_provider_event';
     config: {
         /** Provider evidence is extracted by the edge from a bounded body. */
-        provider: 'microsoft-graph';
+        provider: 'microsoft-graph' | 'google-pubsub';
     };
 };
 
